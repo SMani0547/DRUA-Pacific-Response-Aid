@@ -66,7 +66,6 @@ import {
 } from "lucide-react";
 import {
   aiSummary,
-  aiSummary,
   chatSuggestions,
   getMockAssistantReply,
   overviewStats,

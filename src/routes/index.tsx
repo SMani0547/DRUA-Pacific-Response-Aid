@@ -20,8 +20,13 @@ import {
   X,
   Zap,
   Download,
+  Upload,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { exportPriorityPdf } from "@/lib/export-pdf";
+import { parseReportsCsv, SAMPLE_CSV } from "@/lib/csv-import";
 import {
   Area,
   AreaChart,

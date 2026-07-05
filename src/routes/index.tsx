@@ -33,7 +33,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import {
+  MapPin,
+  Radio,
+  ShieldCheck,
+  Truck,
+  UserCog,
+} from "lucide-react";
 import {
   affectedByArea,
   aiSummary,

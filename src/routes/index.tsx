@@ -363,7 +363,7 @@ function Hero() {
 
 const statIcons = [Activity, AlertTriangle, Users, Shield, Clock];
 
-function OverviewCards() {
+function OverviewCards({ stats }: { stats: typeof overviewStats }) {
   return (
     <section>
       <SectionTitle
@@ -372,7 +372,7 @@ function OverviewCards() {
         subtitle="Aggregated across all monitored districts in the last 24 hours."
       />
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {overviewStats.map((stat, i) => {
+        {stats.map((stat, i) => {
           const Icon = statIcons[i];
           return (
             <Card

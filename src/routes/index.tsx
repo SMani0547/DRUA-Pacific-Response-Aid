@@ -20,8 +20,13 @@ import {
   X,
   Zap,
   Download,
+  Upload,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { exportPriorityPdf } from "@/lib/export-pdf";
+import { parseReportsCsv, SAMPLE_CSV } from "@/lib/csv-import";
 import {
   Area,
   AreaChart,
@@ -60,7 +65,6 @@ import {
   UserCog,
 } from "lucide-react";
 import {
-  affectedByArea,
   aiSummary,
   chatSuggestions,
   getMockAssistantReply,
@@ -84,19 +88,79 @@ const severityStyles: Record<Severity, string> = {
 };
 
 function Dashboard() {
+  const [reports, setReports] = useState<PriorityReport[]>(priorityReports);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = priorityReports.find((r) => r.id === selectedId) ?? null;
+  const [importNotice, setImportNotice] = useState<{
+    kind: "success" | "error";
+    text: string;
+  } | null>(null);
+  const selected = reports.find((r) => r.id === selectedId) ?? null;
+
+  const affectedData = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of reports) map.set(r.area, (map.get(r.area) ?? 0) + r.peopleAffected);
+    return Array.from(map, ([area, people]) => ({ area, people }))
+      .sort((a, b) => b.people - a.people)
+      .slice(0, 8);
+  }, [reports]);
+
+  const overview = useMemo(() => {
+    const total = reports.length;
+    const highRisk = reports.filter((r) => r.severity === "Critical" || r.severity === "High").length;
+    const people = reports.reduce((s, r) => s + r.peopleAffected, 0);
+    const fmtPeople = people >= 1000 ? `${(people / 1000).toFixed(1)}K` : String(people);
+    return [
+      { ...overviewStats[0], value: String(total) },
+      { ...overviewStats[1], value: String(highRisk) },
+      { ...overviewStats[2], value: fmtPeople },
+      overviewStats[3],
+      overviewStats[4],
+    ];
+  }, [reports]);
+
+  function handleImport(text: string, fileName: string) {
+    const { reports: parsed, errors } = parseReportsCsv(text);
+    if (parsed.length === 0) {
+      setImportNotice({
+        kind: "error",
+        text: errors[0] ?? "Could not parse any rows from the CSV.",
+      });
+      return;
+    }
+    setReports(parsed);
+    setSelectedId(null);
+    setImportNotice({
+      kind: "success",
+      text: `Imported ${parsed.length} report${parsed.length === 1 ? "" : "s"} from ${fileName}${
+        errors.length ? ` · ${errors.length} row${errors.length === 1 ? "" : "s"} skipped` : ""
+      }.`,
+    });
+  }
+
+  function resetReports() {
+    setReports(priorityReports);
+    setSelectedId(null);
+    setImportNotice({ kind: "success", text: "Restored the default sample dataset." });
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <Hero />
       <main id="dashboard" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
-        <OverviewCards />
+        <ImportBar
+          onImport={handleImport}
+          onReset={resetReports}
+          notice={importNotice}
+          onDismiss={() => setImportNotice(null)}
+          count={reports.length}
+        />
+        <OverviewCards stats={overview} />
         <div className="grid gap-6 lg:grid-cols-3">
           <TrendChart />
-          <AffectedChart />
+          <AffectedChart data={affectedData} />
         </div>
-        <PriorityTable onSelect={setSelectedId} selectedId={selectedId} />
+        <PriorityTable reports={reports} onSelect={setSelectedId} selectedId={selectedId} />
         <div className="grid gap-6 lg:grid-cols-5">
           <AiSummaryCard />
           <ChatPanel />
@@ -113,6 +177,110 @@ function Dashboard() {
     </div>
   );
 }
+
+function ImportBar({
+  onImport,
+  onReset,
+  notice,
+  onDismiss,
+  count,
+}: {
+  onImport: (text: string, fileName: string) => void;
+  onReset: () => void;
+  notice: { kind: "success" | "error"; text: string } | null;
+  onDismiss: () => void;
+  count: number;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function pickFile() {
+    inputRef.current?.click();
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      onImport("", file.name); // will show error via empty parse
+      return;
+    }
+    const text = await file.text();
+    onImport(text, file.name);
+  }
+
+  function loadSample() {
+    onImport(SAMPLE_CSV, "sample-reports.csv");
+  }
+
+  return (
+    <section>
+      <Card className="rounded-2xl border-border/70 p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">Import community reports (CSV)</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Columns:{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+                  area, issue, severity, peopleAffected, resources, riskScore, action
+                </code>
+                . Currently displaying {count} report{count === 1 ? "" : "s"}.
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={onFile}
+              className="hidden"
+            />
+            <Button variant="outline" size="sm" onClick={loadSample} className="rounded-lg">
+              Load sample
+            </Button>
+            <Button variant="outline" size="sm" onClick={onReset} className="rounded-lg">
+              Reset
+            </Button>
+            <Button size="sm" onClick={pickFile} className="rounded-lg">
+              <Upload className="mr-1.5 h-4 w-4" />
+              Import CSV
+            </Button>
+          </div>
+        </div>
+        {notice && (
+          <div
+            className={cn(
+              "mt-4 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs",
+              notice.kind === "success"
+                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700"
+                : "border-destructive/30 bg-destructive/5 text-destructive",
+            )}
+          >
+            {notice.kind === "success" ? (
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            )}
+            <div className="flex-1">{notice.text}</div>
+            <button
+              onClick={onDismiss}
+              className="text-current/70 hover:text-current"
+              aria-label="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </Card>
+    </section>
+  );
+}
+
 
 function Header() {
   return (
@@ -194,7 +362,7 @@ function Hero() {
 
 const statIcons = [Activity, AlertTriangle, Users, Shield, Clock];
 
-function OverviewCards() {
+function OverviewCards({ stats }: { stats: typeof overviewStats }) {
   return (
     <section>
       <SectionTitle
@@ -203,7 +371,7 @@ function OverviewCards() {
         subtitle="Aggregated across all monitored districts in the last 24 hours."
       />
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {overviewStats.map((stat, i) => {
+        {stats.map((stat, i) => {
           const Icon = statIcons[i];
           return (
             <Card
@@ -269,14 +437,14 @@ function TrendChart() {
   );
 }
 
-function AffectedChart() {
+function AffectedChart({ data }: { data: { area: string; people: number }[] }) {
   return (
     <Card className="rounded-2xl border-border/70 p-6 shadow-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">By area</div>
       <h3 className="mt-1 text-lg font-semibold">People affected</h3>
       <div className="mt-4 h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={affectedByArea} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+          <BarChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.015 240)" vertical={false} />
             <XAxis dataKey="area" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "oklch(0.5 0.03 250)" }} />
             <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "oklch(0.5 0.03 250)" }} />
@@ -290,9 +458,11 @@ function AffectedChart() {
 }
 
 function PriorityTable({
+  reports,
   onSelect,
   selectedId,
 }: {
+  reports: PriorityReport[];
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
@@ -300,12 +470,12 @@ function PriorityTable({
   const [severityFilter, setSeverityFilter] = useState<Severity | "all">("all");
 
   const issueTypes = useMemo(
-    () => Array.from(new Set(priorityReports.map((r) => r.issue))).sort(),
-    [],
+    () => Array.from(new Set(reports.map((r) => r.issue))).sort(),
+    [reports],
   );
 
   const filteredReports = useMemo(() => {
-    return priorityReports.filter((r) => {
+    return reports.filter((r) => {
       const issueMatch = issueFilter === "all" || r.issue === issueFilter;
       const severityMatch = severityFilter === "all" || r.severity === severityFilter;
       return issueMatch && severityMatch;
@@ -444,7 +614,7 @@ function PriorityTable({
           </table>
         </div>
         <div className="border-t border-border/70 px-5 py-3 text-xs text-muted-foreground">
-          Showing {filteredReports.length} of {priorityReports.length} reports
+          Showing {filteredReports.length} of {reports.length} reports
           {activeFilters > 0 && (
             <span className="ml-2 text-primary">{activeFilters} filter{activeFilters === 1 ? "" : "s"} active</span>
           )}

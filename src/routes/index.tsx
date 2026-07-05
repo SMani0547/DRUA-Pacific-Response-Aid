@@ -438,14 +438,14 @@ function TrendChart() {
   );
 }
 
-function AffectedChart() {
+function AffectedChart({ data }: { data: { area: string; people: number }[] }) {
   return (
     <Card className="rounded-2xl border-border/70 p-6 shadow-sm">
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">By area</div>
       <h3 className="mt-1 text-lg font-semibold">People affected</h3>
       <div className="mt-4 h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={affectedByArea} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+          <BarChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.015 240)" vertical={false} />
             <XAxis dataKey="area" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "oklch(0.5 0.03 250)" }} />
             <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "oklch(0.5 0.03 250)" }} />
@@ -459,9 +459,11 @@ function AffectedChart() {
 }
 
 function PriorityTable({
+  reports,
   onSelect,
   selectedId,
 }: {
+  reports: PriorityReport[];
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
@@ -469,12 +471,12 @@ function PriorityTable({
   const [severityFilter, setSeverityFilter] = useState<Severity | "all">("all");
 
   const issueTypes = useMemo(
-    () => Array.from(new Set(priorityReports.map((r) => r.issue))).sort(),
-    [],
+    () => Array.from(new Set(reports.map((r) => r.issue))).sort(),
+    [reports],
   );
 
   const filteredReports = useMemo(() => {
-    return priorityReports.filter((r) => {
+    return reports.filter((r) => {
       const issueMatch = issueFilter === "all" || r.issue === issueFilter;
       const severityMatch = severityFilter === "all" || r.severity === severityFilter;
       return issueMatch && severityMatch;

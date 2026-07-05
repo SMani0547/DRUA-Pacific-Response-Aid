@@ -367,8 +367,24 @@ function PriorityTable({
                 Clear {activeFilters}
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportPriorityPdf(filteredReports, {
+                  issueFilter,
+                  severityFilter,
+                })
+              }
+              disabled={filteredReports.length === 0}
+              className="rounded-lg"
+            >
+              <Download className="mr-1.5 h-4 w-4" />
+              Export PDF
+            </Button>
           </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/60 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">

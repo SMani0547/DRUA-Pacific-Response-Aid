@@ -57,6 +57,7 @@ import {
   priorityReports,
   riskTrend,
   type ChatMessage,
+  type PriorityReport,
   type Severity,
 } from "@/lib/mock-data";
 

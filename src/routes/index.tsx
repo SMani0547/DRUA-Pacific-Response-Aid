@@ -19,7 +19,9 @@ import {
   Waves,
   X,
   Zap,
+  Download,
 } from "lucide-react";
+import { exportPriorityPdf } from "@/lib/export-pdf";
 import {
   Area,
   AreaChart,

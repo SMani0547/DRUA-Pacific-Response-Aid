@@ -277,13 +277,19 @@ function AffectedChart() {
   );
 }
 
-function PriorityTable() {
+function PriorityTable({
+  onSelect,
+  selectedId,
+}: {
+  onSelect: (id: string) => void;
+  selectedId: string | null;
+}) {
   return (
     <section id="priority">
       <SectionTitle
         eyebrow="Priority queue"
         title="Recommended response order"
-        subtitle="Ranked by AI risk score combining severity, population, and available resources."
+        subtitle="Ranked by AI risk score combining severity, population, and available resources. Select a row for details."
       />
       <Card className="mt-6 overflow-hidden rounded-2xl border-border/70 shadow-sm">
         <div className="overflow-x-auto">
@@ -297,11 +303,19 @@ function PriorityTable() {
                 <th className="px-5 py-3">Resources</th>
                 <th className="px-5 py-3">AI Score</th>
                 <th className="px-5 py-3">Action</th>
+                <th className="px-5 py-3 sr-only">Open</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/70">
               {priorityReports.map((r) => (
-                <tr key={r.id} className="transition hover:bg-muted/40">
+                <tr
+                  key={r.id}
+                  onClick={() => onSelect(r.id)}
+                  className={cn(
+                    "cursor-pointer transition hover:bg-muted/40",
+                    selectedId === r.id && "bg-primary/5",
+                  )}
+                >
                   <td className="px-5 py-4 font-medium">{r.area}</td>
                   <td className="px-5 py-4 text-muted-foreground">{r.issue}</td>
                   <td className="px-5 py-4">
@@ -320,6 +334,9 @@ function PriorityTable() {
                     <RiskScore score={r.riskScore} />
                   </td>
                   <td className="px-5 py-4 text-muted-foreground">{r.action}</td>
+                  <td className="px-5 py-4 text-right">
+                    <ArrowRight className="inline h-4 w-4 text-muted-foreground" />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -327,6 +344,135 @@ function PriorityTable() {
         </div>
       </Card>
     </section>
+  );
+}
+
+function AreaDetailsSheet({
+  report,
+  open,
+  onOpenChange,
+}: {
+  report: PriorityReport | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!report) return null;
+  const resources = report.resources.split(",").map((r) => r.trim()).filter(Boolean);
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+        <SheetHeader className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                severityStyles[report.severity],
+              )}
+            >
+              {report.severity}
+            </span>
+            <Badge variant="outline" className="rounded-full text-xs">
+              AI score {report.riskScore}
+            </Badge>
+          </div>
+          <SheetTitle className="text-2xl">{report.area}</SheetTitle>
+          <SheetDescription className="flex items-center gap-1.5 text-sm">
+            <MapPin className="h-3.5 w-3.5" />
+            {report.issue}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-6 space-y-6 px-4">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Incident overview
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <StatTile
+                icon={Users}
+                label="People affected"
+                value={report.peopleAffected.toLocaleString()}
+              />
+              <StatTile
+                icon={Gauge}
+                label="AI risk score"
+                value={`${report.riskScore}/100`}
+              />
+              <StatTile icon={AlertTriangle} label="Severity" value={report.severity} />
+              <StatTile icon={Radio} label="Status" value="Active" />
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Available resources
+            </div>
+            <ul className="mt-3 space-y-2">
+              {resources.map((r) => (
+                <li
+                  key={r}
+                  className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3 text-sm"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Truck className="h-4 w-4" />
+                  </div>
+                  <span className="capitalize">{r}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Recommended action
+            </div>
+            <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{report.action}</div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Generated by Gemini AI using rainfall telemetry, community reports, and hospital
+                    capacity signals.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button className="flex-1 rounded-xl">
+              <Truck className="mr-2 h-4 w-4" /> Dispatch team
+            </Button>
+            <Button variant="outline" className="flex-1 rounded-xl">
+              <UserCog className="mr-2 h-4 w-4" /> Assign lead
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Users;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-card p-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-semibold tracking-tight">{value}</div>
+    </div>
   );
 }
 

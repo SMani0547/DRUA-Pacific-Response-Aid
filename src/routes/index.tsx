@@ -294,6 +294,24 @@ function PriorityTable({
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
+  const [issueFilter, setIssueFilter] = useState<string>("all");
+  const [severityFilter, setSeverityFilter] = useState<Severity | "all">("all");
+
+  const issueTypes = useMemo(
+    () => Array.from(new Set(priorityReports.map((r) => r.issue))).sort(),
+    [],
+  );
+
+  const filteredReports = useMemo(() => {
+    return priorityReports.filter((r) => {
+      const issueMatch = issueFilter === "all" || r.issue === issueFilter;
+      const severityMatch = severityFilter === "all" || r.severity === severityFilter;
+      return issueMatch && severityMatch;
+    });
+  }, [issueFilter, severityFilter]);
+
+  const activeFilters = (issueFilter !== "all" ? 1 : 0) + (severityFilter !== "all" ? 1 : 0);
+
   return (
     <section id="priority">
       <SectionTitle
@@ -302,6 +320,53 @@ function PriorityTable({
         subtitle="Ranked by AI risk score combining severity, population, and available resources. Select a row for details."
       />
       <Card className="mt-6 overflow-hidden rounded-2xl border-border/70 shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-border/70 bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            Filter reports
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Select value={issueFilter} onValueChange={setIssueFilter}>
+              <SelectTrigger className="w-full sm:w-52" aria-label="Filter by issue type">
+                <SelectValue placeholder="Issue type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All issue types</SelectItem>
+                {issueTypes.map((issue) => (
+                  <SelectItem key={issue} value={issue}>
+                    {issue}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as Severity | "all")}>
+              <SelectTrigger className="w-full sm:w-44" aria-label="Filter by severity">
+                <SelectValue placeholder="Severity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All severities</SelectItem>
+                <SelectItem value="Critical">Critical</SelectItem>
+                <SelectItem value="High">High</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+            {activeFilters > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIssueFilter("all");
+                  setSeverityFilter("all");
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="mr-1 h-4 w-4" />
+                Clear {activeFilters}
+              </Button>
+            )}
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/60 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -317,40 +382,54 @@ function PriorityTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/70">
-              {priorityReports.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => onSelect(r.id)}
-                  className={cn(
-                    "cursor-pointer transition hover:bg-muted/40",
-                    selectedId === r.id && "bg-primary/5",
-                  )}
-                >
-                  <td className="px-5 py-4 font-medium">{r.area}</td>
-                  <td className="px-5 py-4 text-muted-foreground">{r.issue}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                        severityStyles[r.severity],
-                      )}
-                    >
-                      {r.severity}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 tabular-nums">{r.peopleAffected.toLocaleString()}</td>
-                  <td className="px-5 py-4 text-muted-foreground">{r.resources}</td>
-                  <td className="px-5 py-4">
-                    <RiskScore score={r.riskScore} />
-                  </td>
-                  <td className="px-5 py-4 text-muted-foreground">{r.action}</td>
-                  <td className="px-5 py-4 text-right">
-                    <ArrowRight className="inline h-4 w-4 text-muted-foreground" />
+              {filteredReports.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">
+                    No reports match the selected filters.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredReports.map((r) => (
+                  <tr
+                    key={r.id}
+                    onClick={() => onSelect(r.id)}
+                    className={cn(
+                      "cursor-pointer transition hover:bg-muted/40",
+                      selectedId === r.id && "bg-primary/5",
+                    )}
+                  >
+                    <td className="px-5 py-4 font-medium">{r.area}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{r.issue}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                          severityStyles[r.severity],
+                        )}
+                      >
+                        {r.severity}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 tabular-nums">{r.peopleAffected.toLocaleString()}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{r.resources}</td>
+                    <td className="px-5 py-4">
+                      <RiskScore score={r.riskScore} />
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">{r.action}</td>
+                    <td className="px-5 py-4 text-right">
+                      <ArrowRight className="inline h-4 w-4 text-muted-foreground" />
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
+        </div>
+        <div className="border-t border-border/70 px-5 py-3 text-xs text-muted-foreground">
+          Showing {filteredReports.length} of {priorityReports.length} reports
+          {activeFilters > 0 && (
+            <span className="ml-2 text-primary">{activeFilters} filter{activeFilters === 1 ? "" : "s"} active</span>
+          )}
         </div>
       </Card>
     </section>

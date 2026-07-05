@@ -615,7 +615,7 @@ function PriorityTable({
           </table>
         </div>
         <div className="border-t border-border/70 px-5 py-3 text-xs text-muted-foreground">
-          Showing {filteredReports.length} of {priorityReports.length} reports
+          Showing {filteredReports.length} of {reports.length} reports
           {activeFilters > 0 && (
             <span className="ml-2 text-primary">{activeFilters} filter{activeFilters === 1 ? "" : "s"} active</span>
           )}

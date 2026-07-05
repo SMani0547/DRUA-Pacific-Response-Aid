@@ -65,7 +65,7 @@ import {
   UserCog,
 } from "lucide-react";
 import {
-  affectedByArea,
+  aiSummary,
   aiSummary,
   chatSuggestions,
   getMockAssistantReply,

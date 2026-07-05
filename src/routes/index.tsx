@@ -72,6 +72,8 @@ const severityStyles: Record<Severity, string> = {
 };
 
 function Dashboard() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = priorityReports.find((r) => r.id === selectedId) ?? null;
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
@@ -82,7 +84,7 @@ function Dashboard() {
           <TrendChart />
           <AffectedChart />
         </div>
-        <PriorityTable />
+        <PriorityTable onSelect={setSelectedId} selectedId={selectedId} />
         <div className="grid gap-6 lg:grid-cols-5">
           <AiSummaryCard />
           <ChatPanel />
@@ -91,6 +93,11 @@ function Dashboard() {
         <PipelineSection />
       </main>
       <Footer />
+      <AreaDetailsSheet
+        report={selected}
+        open={selected !== null}
+        onOpenChange={(o) => !o && setSelectedId(null)}
+      />
     </div>
   );
 }

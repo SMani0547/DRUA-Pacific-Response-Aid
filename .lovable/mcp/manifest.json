@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "pacific-response-intelligence-mcp",
+      "version": "0.1.0",
+      "title": "Pacific Response Intelligence"
+    },
+    "tools": [
+      {
+        "name": "list_priority_reports",
+        "title": "List priority reports",
+        "description": "List current community emergency reports across monitored Pacific areas, ranked by AI risk score.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "minSeverity": {
+              "description": "Only include reports at this severity or higher.",
+              "type": "string",
+              "enum": [
+                "Low",
+                "Medium",
+                "High",
+                "Critical"
+              ]
+            },
+            "limit": {
+              "description": "Maximum number of reports to return.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_area_status",
+        "title": "Get area status",
+        "description": "Get the current emergency status, AI risk score, and recommended action for a specific Pacific area.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "area": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Area name, e.g. Rakiraki, Ba, Nadi, Lautoka, Labasa, Suva, or Tavua."
+            }
+          },
+          "required": [
+            "area"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "response_summary",
+        "title": "Response summary",
+        "description": "Get the Gemini AI response summary plus top-line stats (reports, high-risk areas, people affected, teams available).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

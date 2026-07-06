@@ -56,6 +56,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import rapidsBenchmarkProof from "@/assets/rapids-benchmark-proof.png.asset.json";
+
 import { cn } from "@/lib/utils";
 import {
   MapPin,

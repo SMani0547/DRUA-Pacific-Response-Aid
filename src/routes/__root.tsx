@@ -81,10 +81,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "AI and accelerated data intelligence for faster community emergency decisions across Fiji and the Pacific." },
       { name: "author", content: "Pacific Response Intelligence" },
       { property: "og:title", content: "Pacific Response Intelligence" },
-      { property: "og:description", content: "AI-powered decision support for Pacific emergency and community response teams." },
+      { property: "og:description", content: "AI and accelerated data intelligence for faster community emergency decisions across Fiji and the Pacific." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Pacific Response Intelligence" },
+      { name: "twitter:description", content: "AI and accelerated data intelligence for faster community emergency decisions across Fiji and the Pacific." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/a7446f44-fe03-4b94-a7a6-31529debafb0" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/a7446f44-fe03-4b94-a7a6-31529debafb0" },
     ],
     links: [
       {

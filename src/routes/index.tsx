@@ -181,6 +181,7 @@ function Dashboard() {
           <AiSummaryCard />
           <ChatPanel />
         </div>
+        <GoogleCloudSection />
         <AccelerationSection />
         <PipelineSection />
       </main>

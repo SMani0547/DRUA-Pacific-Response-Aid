@@ -316,6 +316,7 @@ function Header() {
           <a href="#dashboard" className="hover:text-foreground">Dashboard</a>
           <a href="#priority" className="hover:text-foreground">Priorities</a>
           <a href="#ai" className="hover:text-foreground">AI Insights</a>
+          <a href="#data-layer" className="hover:text-foreground">Data Layer</a>
           <a href="#acceleration" className="hover:text-foreground">Acceleration</a>
         </nav>
         <Button asChild size="sm">

@@ -67,6 +67,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import rapidsBenchmarkProof from "@/assets/rapids-benchmark-proof.png.asset.json";
+import bqSchema from "@/assets/bq-schema.png.asset.json";
+import bqTop10 from "@/assets/bq-top10-query.png.asset.json";
+import bqAreaRollup from "@/assets/bq-area-rollup.png.asset.json";
+import bqIssueRollup from "@/assets/bq-issue-rollup.png.asset.json";
 
 import { cn } from "@/lib/utils";
 import {

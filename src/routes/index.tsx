@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Boxes,
   Clock,
+  Cloud,
   Database,
   Filter,
   Gauge,
@@ -13,6 +14,7 @@ import {
   Send,
   Shield,
   Sparkles,
+  Table2,
   Timer,
   TrendingUp,
   Users,
@@ -65,6 +67,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import rapidsBenchmarkProof from "@/assets/rapids-benchmark-proof.png.asset.json";
+import bqSchema from "@/assets/bq-schema.png.asset.json";
+import bqTop10 from "@/assets/bq-top10-query.png.asset.json";
+import bqAreaRollup from "@/assets/bq-area-rollup.png.asset.json";
+import bqIssueRollup from "@/assets/bq-issue-rollup.png.asset.json";
 
 import { cn } from "@/lib/utils";
 import {
@@ -175,6 +181,7 @@ function Dashboard() {
           <AiSummaryCard />
           <ChatPanel />
         </div>
+        <GoogleCloudSection />
         <AccelerationSection />
         <PipelineSection />
       </main>
@@ -309,6 +316,7 @@ function Header() {
           <a href="#dashboard" className="hover:text-foreground">Dashboard</a>
           <a href="#priority" className="hover:text-foreground">Priorities</a>
           <a href="#ai" className="hover:text-foreground">AI Insights</a>
+          <a href="#data-layer" className="hover:text-foreground">Data Layer</a>
           <a href="#acceleration" className="hover:text-foreground">Acceleration</a>
         </nav>
         <Button asChild size="sm">
@@ -1047,11 +1055,256 @@ function BenchmarkCard({
   );
 }
 
+const gcpStack = [
+  {
+    icon: Cloud,
+    name: "Cloud Storage",
+    role: "Ingest",
+    detail: "Uploaded community incident CSV files land in a Cloud Storage bucket before ETL.",
+    meta: "gs://pacific-response/incidents/",
+  },
+  {
+    icon: Database,
+    name: "BigQuery",
+    role: "Store & query",
+    detail: "Emergency reports are loaded into a partitioned BigQuery table for fast SQL analytics.",
+    meta: "pacific_response_intelligence.incident_reports",
+  },
+  {
+    icon: Zap,
+    name: "NVIDIA RAPIDS / cuDF",
+    role: "Accelerate",
+    detail: "GPU-accelerated priority risk scoring on millions of rows — 11.4× faster than pandas.",
+    meta: "Tesla T4 · cuDF pipeline",
+  },
+  {
+    icon: Sparkles,
+    name: "Gemini",
+    role: "Summarize",
+    detail: "Generates plain-language response summaries and recommended next actions.",
+    meta: "gemini-1.5 · grounded on BigQuery",
+  },
+  {
+    icon: Boxes,
+    name: "Response Dashboard",
+    role: "Decide",
+    detail: "Ranked priorities, resources, and AI insight in a single decision-support view.",
+    meta: "This app",
+  },
+];
+
+const gcpProofShots = [
+  {
+    src: bqSchema.url,
+    title: "BigQuery table schema",
+    caption: "pacific_response_intelligence.incident_reports — 15 columns including risk_score, severity, people_affected.",
+  },
+  {
+    src: bqTop10.url,
+    title: "Top 10 highest-risk incidents",
+    caption: "SELECT … FROM incident_reports ORDER BY risk_score DESC LIMIT 10 — the ranked priority list served to responders.",
+  },
+  {
+    src: bqAreaRollup.url,
+    title: "Roll-up by area",
+    caption: "Aggregate reports, avg / max risk, and total people affected per area.",
+  },
+  {
+    src: bqIssueRollup.url,
+    title: "Roll-up by issue type",
+    caption: "Distribution across Flooding, Cyclone Damage, Health Risk, Power Outage, Road Blocked, Water Shortage.",
+  },
+];
+
+function GoogleCloudSection() {
+  return (
+    <section id="data-layer">
+      <SectionTitle
+        eyebrow="Architecture · Google Cloud"
+        title="Google Cloud Data Layer"
+        subtitle="How raw community reports become ranked, AI-summarised decisions — powered by Cloud Storage, BigQuery, NVIDIA RAPIDS and Gemini."
+      />
+
+      {/* Stack cards */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {gcpStack.map((s) => (
+          <Card key={s.name} className="rounded-2xl border-border/70 p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <s.icon className="h-4.5 w-4.5" />
+              </div>
+              <Badge variant="secondary" className="rounded-full text-[10px] uppercase tracking-wide">
+                {s.role}
+              </Badge>
+            </div>
+            <div className="mt-3 text-sm font-semibold">{s.name}</div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{s.detail}</p>
+            <div className="mt-3 truncate rounded-md bg-muted/60 px-2 py-1 font-mono text-[10.5px] text-muted-foreground">
+              {s.meta}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Pipeline flow */}
+      <Card className="mt-4 rounded-2xl border-border/70 bg-gradient-to-br from-primary/5 via-background to-background p-5 shadow-sm">
+        <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
+          <ArrowRight className="h-3.5 w-3.5" /> Data flow
+        </div>
+        <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-center">
+          {[
+            "Community Reports / CSV",
+            "Cloud Storage",
+            "BigQuery incident_reports",
+            "Risk Scoring + RAPIDS",
+            "Gemini Summary",
+            "Response Dashboard",
+          ].map((step, i, arr) => (
+            <div key={step} className="flex flex-1 items-center gap-2 lg:flex-col">
+              <div className="w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-center text-xs font-medium">
+                {step}
+              </div>
+              {i < arr.length - 1 && (
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground lg:rotate-0" />
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* BigQuery proof card */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
+        <Card className="rounded-2xl border-border/70 p-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Table2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-semibold">BigQuery proof</div>
+                <Badge variant="secondary" className="rounded-full text-[10px]">Live dataset</Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Real BigQuery objects backing the dashboard — table, rows, and a working query.
+              </p>
+            </div>
+          </div>
+
+          <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+            <ProofRow k="Dataset" v="pacific_response_intelligence" mono />
+            <ProofRow k="Table" v="incident_reports" mono />
+            <ProofRow k="Example rows" v="10,000 emergency reports" />
+            <ProofRow k="Example query" v="Top 10 highest-risk incidents by risk_score" />
+            <div className="sm:col-span-2">
+              <ProofRow k="Output" v="Ranked priority list for response teams" />
+            </div>
+          </dl>
+
+          <div className="mt-5 overflow-hidden rounded-xl border border-border/70 bg-slate-950 text-slate-100">
+            <div className="flex items-center justify-between border-b border-white/10 px-3 py-2 text-[11px] text-slate-400">
+              <span className="font-mono">bq · Standard SQL</span>
+              <span>10K rows · 1.4 MB</span>
+            </div>
+            <pre className="overflow-x-auto p-4 text-[11.5px] leading-relaxed">
+{`SELECT
+  area, issue_type, severity, people_affected,
+  resource_status, road_access, risk_score,
+  recommended_action, created_at
+FROM \`pacific_response_intelligence.incident_reports\`
+ORDER BY risk_score DESC
+LIMIT 10;`}
+            </pre>
+          </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="mt-5 rounded-xl">
+                <FileText className="h-4 w-4" /> View BigQuery evidence
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Google Cloud proof</DialogTitle>
+                <DialogDescription>
+                  Cloud Storage upload, BigQuery table, and SQL results powering the priority ranking.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+                {gcpProofShots.map((shot) => (
+                  <div key={shot.title} className="overflow-hidden rounded-xl border border-border/70 bg-muted/40">
+                    <div className="border-b border-border/60 px-3 py-2">
+                      <div className="text-xs font-semibold">{shot.title}</div>
+                      <div className="text-[11px] text-muted-foreground">{shot.caption}</div>
+                    </div>
+                    <img src={shot.src} alt={shot.title} className="w-full" />
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </Card>
+
+        {/* Cloud Storage + inline preview */}
+        <div className="grid gap-4">
+          <Card className="rounded-2xl border-border/70 p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Cloud className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold">Cloud Storage bucket</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Uploaded community incident CSVs land here before being loaded into BigQuery.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 overflow-hidden rounded-xl border border-border/70">
+              <div className="flex items-center justify-between bg-muted/60 px-3 py-2 text-[11px] font-mono text-muted-foreground">
+                <span>gs://pacific-response/incidents/</span>
+                <span>10,000 rows</span>
+              </div>
+              <div className="flex items-center gap-3 px-3 py-3 text-xs">
+                <FileText className="h-4 w-4 text-primary" />
+                <span className="font-mono">pacific_response_incidents.csv</span>
+                <Badge variant="secondary" className="ml-auto rounded-full text-[10px]">1.4 MB</Badge>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden rounded-2xl border-border/70 p-0 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
+              <Database className="h-4 w-4 text-primary" />
+              <div className="text-xs font-semibold">incident_reports · schema preview</div>
+            </div>
+            <img
+              src={bqSchema.url}
+              alt="BigQuery table schema for incident_reports"
+              className="w-full"
+            />
+          </Card>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProofRow({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2">
+      <div className="text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground">{k}</div>
+      <div className={cn("mt-0.5 text-sm text-foreground", mono && "font-mono text-[13px]")}>{v}</div>
+    </div>
+  );
+}
+
+
+
 const pipeline = [
-  { icon: MessageSquare, label: "Community Reports", sub: "SMS · Web · Field" },
-  { icon: Database, label: "BigQuery", sub: "Ingestion & storage" },
-  { icon: Zap, label: "RAPIDS / cuDF", sub: "GPU processing" },
-  { icon: Sparkles, label: "Gemini AI", sub: "Insights & summary" },
+  { icon: MessageSquare, label: "Community Reports", sub: "SMS · Web · Field · CSV" },
+  { icon: Cloud, label: "Cloud Storage", sub: "Incident CSV bucket" },
+  { icon: Database, label: "BigQuery", sub: "incident_reports table" },
+  { icon: Zap, label: "RAPIDS / cuDF", sub: "GPU risk scoring" },
+  { icon: Sparkles, label: "Gemini AI", sub: "Plain-language summary" },
   { icon: Boxes, label: "Response Dashboard", sub: "Decisions & action" },
 ];
 

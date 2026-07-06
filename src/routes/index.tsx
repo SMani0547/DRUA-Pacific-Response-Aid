@@ -178,7 +178,7 @@ function Dashboard() {
         </div>
         <PriorityTable reports={reports} onSelect={setSelectedId} selectedId={selectedId} />
         <div className="grid gap-6 lg:grid-cols-5">
-          <AiSummaryCard />
+          <AiSummaryCard reports={reports} />
           <ChatPanel />
         </div>
         <GoogleCloudSection />
@@ -784,7 +784,43 @@ function RiskScore({ score }: { score: number }) {
   );
 }
 
-function AiSummaryCard() {
+function AiSummaryCard({ reports }: { reports: PriorityReport[] }) {
+  const [summary, setSummary] = useState<string>(aiSummary);
+  const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isLive = generatedAt !== null;
+  const stamp = generatedAt
+    ? `Updated ${new Date(generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+    : "Sample summary";
+
+  async function generate() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { generateResponseSummary } = await import("@/lib/gemini.functions");
+      const result = await generateResponseSummary({
+        data: {
+          reports: reports.map((r) => ({
+            area: r.area,
+            issue: r.issue,
+            severity: r.severity,
+            peopleAffected: r.peopleAffected,
+            riskScore: r.riskScore,
+            resources: r.resources,
+          })),
+        },
+      });
+      setSummary(result.summary);
+      setGeneratedAt(new Date(result.generatedAt));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate summary.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Card id="ai" className="lg:col-span-3 rounded-2xl border-border/70 p-6 shadow-sm">
       <div className="flex items-center gap-2">
@@ -795,17 +831,29 @@ function AiSummaryCard() {
           <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">AI insight</div>
           <h3 className="text-lg font-semibold">Gemini AI Response Summary</h3>
         </div>
-        <Badge variant="outline" className="ml-auto rounded-full">Updated 2 min ago</Badge>
+        <Badge variant="outline" className="ml-auto rounded-full">
+          {isLive ? stamp : stamp}
+        </Badge>
       </div>
       <div className="mt-5 space-y-4 text-sm leading-relaxed text-foreground/90">
-        {aiSummary.split("\n\n").map((para, i) => (
+        {summary.split("\n\n").map((para, i) => (
           <p key={i}>{para}</p>
         ))}
       </div>
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Badge className="rounded-full bg-primary/10 text-primary hover:bg-primary/15" variant="secondary">Rakiraki · 94</Badge>
-        <Badge className="rounded-full bg-primary/10 text-primary hover:bg-primary/15" variant="secondary">Ba · 89</Badge>
-        <Badge className="rounded-full bg-primary/10 text-primary hover:bg-primary/15" variant="secondary">Lautoka · 71</Badge>
+      {error && (
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <Button size="sm" onClick={generate} disabled={loading} className="rounded-xl">
+          <Sparkles className="h-4 w-4" />
+          {loading ? "Generating…" : isLive ? "Regenerate with Gemini" : "Generate with Gemini"}
+        </Button>
+        <Badge variant="secondary" className="rounded-full text-[10px]">
+          Server-side · GEMINI_API_KEY
+        </Badge>
       </div>
     </Card>
   );

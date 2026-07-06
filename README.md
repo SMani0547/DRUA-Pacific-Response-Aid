@@ -109,8 +109,8 @@ Faster processing → lower time-to-insight → the duty officer sees the *right
 
 ## Live Endpoints
 
-- Dashboard: `https://pacific-response-aid.lovable.app`
-- MCP endpoint (for AI agents): `https://pacific-response-aid.lovable.app/mcp`
+- Dashboard: `https://drua.shivafj.dev`
+- MCP endpoint (for AI agents): `https://drua.shivafj.dev/mcp`
 
 ---
 

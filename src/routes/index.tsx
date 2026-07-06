@@ -307,10 +307,12 @@ function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Waves className="h-5 w-5" />
-          </div>
+        <div className="flex items-center gap-3">
+          <img
+            src={priLogo.url}
+            alt="Pacific Response Intelligence logo"
+            className="h-11 w-11 rounded-xl object-cover shadow-sm ring-1 ring-border/60"
+          />
           <div>
             <div className="text-sm font-semibold leading-tight">Pacific Response</div>
             <div className="text-[11px] uppercase tracking-widest text-muted-foreground">Intelligence</div>

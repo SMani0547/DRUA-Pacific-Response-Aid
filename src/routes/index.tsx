@@ -185,6 +185,7 @@ function Dashboard() {
         <GoogleCloudSection />
         <AccelerationSection />
         <PipelineSection />
+        <AgentToolsSection />
       </main>
       <Footer />
       <AreaDetailsSheet

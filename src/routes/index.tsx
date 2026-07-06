@@ -338,11 +338,11 @@ function Hero() {
     <section className="relative overflow-hidden border-b border-border/60">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 opacity-[0.25]"
+        className="absolute inset-0 -z-20 opacity-[0.35]"
         style={{
           backgroundImage: `url(${heroTapaPattern.url})`,
           backgroundRepeat: "repeat",
-          backgroundSize: "600px auto",
+          backgroundSize: "500px auto",
         }}
       />
       <div

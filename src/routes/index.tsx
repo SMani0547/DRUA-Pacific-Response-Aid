@@ -11,6 +11,7 @@ import {
   Database,
   Filter,
   Gauge,
+  Github,
   MessageSquare,
   Send,
   Shield,
@@ -1527,7 +1528,18 @@ function Footer() {
           <Waves className="h-4 w-4 text-primary" />
           Built for smarter, safer, and more resilient Pacific communities.
         </div>
-        <div className="text-xs">© {new Date().getFullYear()} Pacific Response Intelligence</div>
+        <div className="flex items-center gap-4 text-xs">
+          <a
+            href="https://github.com/SMani0547/DRUA-Pacific-Response-Intelligence"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 hover:text-foreground"
+          >
+            <Github className="h-4 w-4" />
+            GitHub
+          </a>
+          <span>© {new Date().getFullYear()} Pacific Response Intelligence</span>
+        </div>
       </div>
     </footer>
   );

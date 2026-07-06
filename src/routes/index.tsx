@@ -56,6 +56,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import rapidsBenchmarkProof from "@/assets/rapids-benchmark-proof.png.asset.json";
+
 import { cn } from "@/lib/utils";
 import {
   MapPin,
@@ -879,53 +889,123 @@ function ChatPanel() {
 }
 
 function AccelerationSection() {
-  const pandas = 4.2;
-  const rapids = 0.8;
-  const speedup = useMemo(() => (pandas / rapids).toFixed(1), []);
+  const pandas = 1.4007;
+  const rapids = 0.1228;
+  const speedup = 11.4;
+  const datasetSize = 2_000_000;
   return (
     <section id="acceleration">
       <SectionTitle
-        eyebrow="Performance"
+        eyebrow="Performance · Benchmark evidence"
         title="NVIDIA RAPIDS Acceleration"
-        subtitle="Accelerated processing lets response teams analyze larger community datasets and make faster decisions."
+        subtitle="GPU-accelerated priority risk-scoring lets response teams process massive incident datasets in a fraction of the time — quicker triage, quicker decisions."
       />
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <BenchmarkCard
-          label="Pandas (CPU)"
-          value={`${pandas}s`}
-          icon={Timer}
-          barWidth={100}
-          tone="muted"
-          description="Standard dataframe processing on CPU."
-        />
-        <BenchmarkCard
-          label="RAPIDS / cuDF (GPU)"
-          value={`${rapids}s`}
-          icon={Zap}
-          barWidth={(rapids / pandas) * 100}
-          tone="primary"
-          description="GPU-accelerated dataframe processing."
-        />
-        <Card className="flex flex-col justify-between rounded-2xl border-border/70 p-6 shadow-sm">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Result</div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-5xl font-semibold tracking-tight text-primary">{speedup}x</span>
-              <span className="text-sm text-muted-foreground">faster</span>
+
+      <Card className="mt-6 overflow-hidden rounded-2xl border-border/70 shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[1.1fr_1fr]">
+          {/* Headline */}
+          <div className="relative border-b border-border/70 bg-gradient-to-br from-primary/10 via-background to-background p-8 lg:border-b-0 lg:border-r">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
+              <Zap className="h-3.5 w-3.5" /> Benchmark result
+            </div>
+            <div className="mt-4 flex items-baseline gap-3">
+              <span className="text-6xl font-semibold tracking-tight text-primary sm:text-7xl">
+                {speedup.toFixed(2)}x
+              </span>
+              <span className="text-lg text-muted-foreground">faster</span>
+            </div>
+            <p className="mt-3 max-w-md text-sm text-muted-foreground">
+              Priority risk-scoring and incident ranking on{" "}
+              <span className="font-semibold text-foreground">
+                {datasetSize.toLocaleString()} emergency reports
+              </span>{" "}
+              — NVIDIA RAPIDS/cuDF on a Tesla T4 GPU vs traditional pandas on CPU.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="rounded-full">
+                <Database className="mr-1 h-3 w-3" /> 2M rows
+              </Badge>
+              <Badge variant="secondary" className="rounded-full">
+                <Gauge className="mr-1 h-3 w-3" /> NVIDIA Tesla T4
+              </Badge>
+              <Badge variant="secondary" className="rounded-full">
+                <Sparkles className="mr-1 h-3 w-3" /> cuDF
+              </Badge>
+            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="mt-6 rounded-xl">
+                  <FileText className="h-4 w-4" /> View benchmark evidence
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Benchmark evidence</DialogTitle>
+                  <DialogDescription>
+                    Raw output from the priority risk-scoring benchmark on 2,000,000 emergency reports.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/40 p-3">
+                  <img
+                    src={rapidsBenchmarkProof.url}
+                    alt="NVIDIA RAPIDS cuDF benchmark result showing 11.4x speedup over pandas"
+                    className="w-full rounded-md"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-lg border border-border/70 p-3">
+                    <div className="text-muted-foreground">pandas (CPU)</div>
+                    <div className="mt-1 font-mono text-sm font-semibold">{pandas.toFixed(4)}s</div>
+                  </div>
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <div className="text-primary">RAPIDS / cuDF (GPU)</div>
+                    <div className="mt-1 font-mono text-sm font-semibold text-primary">
+                      {rapids.toFixed(4)}s
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Side-by-side comparison */}
+          <div className="grid gap-4 p-6 sm:grid-cols-2">
+            <BenchmarkCard
+              label="Traditional pandas"
+              value={`${pandas.toFixed(4)}s`}
+              icon={Timer}
+              barWidth={100}
+              tone="muted"
+              description="CPU dataframe processing on 2M reports."
+            />
+            <BenchmarkCard
+              label="NVIDIA RAPIDS / cuDF"
+              value={`${rapids.toFixed(4)}s`}
+              icon={Zap}
+              barWidth={(rapids / pandas) * 100}
+              tone="primary"
+              description="GPU-accelerated processing on Tesla T4."
+            />
+            <div className="rounded-2xl border border-border/70 bg-muted/30 p-4 sm:col-span-2">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 text-sm text-muted-foreground">
+                  Benchmark uses the same priority risk-scoring and incident-ranking logic as the
+                  dashboard. RAPIDS/cuDF acceleration helps emergency teams process large incident
+                  datasets faster and make quicker response decisions when conditions change by the
+                  minute.
+                </div>
+              </div>
             </div>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Faster processing means emergency teams reprioritize as new community reports arrive — critical when
-            conditions change by the minute during floods and cyclones.
-          </p>
-          <div className="mt-4 flex items-center gap-2 text-xs text-primary">
-            <TrendingUp className="h-4 w-4" /> 37 minutes saved per incident, on average.
-          </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
     </section>
   );
 }
+
 
 function BenchmarkCard({
   label,

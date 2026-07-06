@@ -338,11 +338,11 @@ function Hero() {
     <section className="relative overflow-hidden border-b border-border/60">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 opacity-[0.18]"
+        className="absolute inset-0 -z-20 opacity-[0.25]"
         style={{
           backgroundImage: `url(${heroTapaPattern.url})`,
           backgroundRepeat: "repeat",
-          backgroundSize: "800px auto",
+          backgroundSize: "600px auto",
         }}
       />
       <div
@@ -350,7 +350,7 @@ function Hero() {
         className="absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(1200px 500px at 80% -10%, oklch(0.72 0.14 210 / 0.18), transparent), radial-gradient(800px 400px at 10% 10%, oklch(0.35 0.14 255 / 0.15), transparent), linear-gradient(180deg, oklch(1 0 0 / 0.35), oklch(1 0 0 / 0.65))",
+            "radial-gradient(1200px 500px at 80% -10%, oklch(0.72 0.14 210 / 0.18), transparent), radial-gradient(800px 400px at 10% 10%, oklch(0.35 0.14 255 / 0.15), transparent), linear-gradient(180deg, oklch(1 0 0 / 0.25), oklch(1 0 0 / 0.5))",
         }}
       />
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">

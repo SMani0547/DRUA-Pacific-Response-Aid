@@ -178,7 +178,7 @@ function Dashboard() {
         </div>
         <PriorityTable reports={reports} onSelect={setSelectedId} selectedId={selectedId} />
         <div className="grid gap-6 lg:grid-cols-5">
-          <AiSummaryCard />
+          <AiSummaryCard reports={reports} />
           <ChatPanel />
         </div>
         <GoogleCloudSection />

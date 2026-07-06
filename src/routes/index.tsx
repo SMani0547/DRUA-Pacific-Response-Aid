@@ -337,10 +337,20 @@ function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-border/60">
       <div
+        aria-hidden
+        className="absolute inset-0 -z-20 opacity-[0.08]"
+        style={{
+          backgroundImage: `url(${tapaPattern.url})`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "520px auto",
+        }}
+      />
+      <div
+        aria-hidden
         className="absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(1200px 500px at 80% -10%, oklch(0.72 0.14 210 / 0.18), transparent), radial-gradient(800px 400px at 10% 10%, oklch(0.35 0.14 255 / 0.15), transparent)",
+            "radial-gradient(1200px 500px at 80% -10%, oklch(0.72 0.14 210 / 0.18), transparent), radial-gradient(800px 400px at 10% 10%, oklch(0.35 0.14 255 / 0.15), transparent), linear-gradient(180deg, oklch(1 0 0 / 0.65), oklch(1 0 0 / 0.9))",
         }}
       />
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">

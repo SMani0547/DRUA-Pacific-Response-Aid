@@ -339,12 +339,13 @@ function Hero() {
     <section className="relative overflow-hidden border-b border-border/60">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 opacity-[0.15]"
+        className="absolute inset-0 -z-20 opacity-[0.5]"
         style={{
           backgroundImage: `url(${heroTapaPattern.url})`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           backgroundPosition: "center top",
+          filter: "contrast(1.5) brightness(1.1)",
         }}
       />
       <div
@@ -352,7 +353,7 @@ function Hero() {
         className="absolute inset-0 -z-10"
         style={{
           background:
-            "linear-gradient(180deg, oklch(1 0 0 / 0.78), oklch(1 0 0 / 0.88))",
+            "linear-gradient(180deg, oklch(1 0 0 / 0.75), oklch(1 0 0 / 0.85))",
         }}
       />
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">

@@ -336,10 +336,10 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border/60 bg-slate-100">
+    <section className="relative overflow-hidden border-b border-border/60 bg-slate-200">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 opacity-[0.35]"
+        className="absolute inset-0 -z-20 opacity-[0.5]"
         style={{
           backgroundImage: `url(${heroTapaPattern.url})`,
           backgroundRepeat: "repeat",

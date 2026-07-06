@@ -336,24 +336,26 @@ function Header() {
 
 function Hero() {
   return (
-    <section
-      className="relative overflow-hidden border-b border-border/60"
-      style={{
-        backgroundImage: `url(${heroTapaPattern.url})`,
-        backgroundRepeat: "repeat",
-        backgroundSize: "600px auto",
-        backgroundPosition: "center",
-      }}
-    >
+    <section className="relative overflow-hidden border-b border-border/60">
+      <div
+        aria-hidden
+        className="absolute inset-0 z-0 opacity-[0.15]"
+        style={{
+          backgroundImage: `url(${heroTapaPattern.url})`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "600px auto",
+          backgroundPosition: "center",
+        }}
+      />
       <div
         aria-hidden
         className="absolute inset-0 z-10"
         style={{
           background:
-            "radial-gradient(1200px 600px at 80% -10%, oklch(0.72 0.14 210 / 0.25), transparent), radial-gradient(800px 400px at 10% 10%, oklch(0.35 0.14 255 / 0.2), transparent), linear-gradient(180deg, oklch(1 0 0 / 0.72), oklch(1 0 0 / 0.85))",
+            "radial-gradient(1200px 600px at 80% -10%, oklch(0.72 0.14 210 / 0.25), transparent), radial-gradient(800px 400px at 10% 10%, oklch(0.35 0.14 255 / 0.2), transparent), linear-gradient(180deg, oklch(1 0 0 / 0.82), oklch(1 0 0 / 0.92))",
         }}
       />
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <div className="relative z-20 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
             <Sparkles className="h-3.5 w-3.5 text-accent" />

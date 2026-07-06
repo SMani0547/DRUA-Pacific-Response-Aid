@@ -74,6 +74,7 @@ import bqAreaRollup from "@/assets/bq-area-rollup.png.asset.json";
 import bqIssueRollup from "@/assets/bq-issue-rollup.png.asset.json";
 import priLogo from "@/assets/pri-logo.png.asset.json";
 import tapaPattern from "@/assets/tapa-pattern.png.asset.json";
+import heroTapaPattern from "@/assets/hero-tapa-pattern.png.asset.json";
 
 import { cn } from "@/lib/utils";
 import {
@@ -338,11 +339,11 @@ function Hero() {
     <section className="relative overflow-hidden border-b border-border/60">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 opacity-[0.08]"
+        className="absolute inset-0 -z-20 opacity-[0.05]"
         style={{
-          backgroundImage: `url(${tapaPattern.url})`,
+          backgroundImage: `url(${heroTapaPattern.url})`,
           backgroundRepeat: "repeat",
-          backgroundSize: "520px auto",
+          backgroundSize: "1200px auto",
         }}
       />
       <div

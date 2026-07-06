@@ -1054,10 +1054,11 @@ function BenchmarkCard({
 }
 
 const pipeline = [
-  { icon: MessageSquare, label: "Community Reports", sub: "SMS · Web · Field" },
-  { icon: Database, label: "BigQuery", sub: "Ingestion & storage" },
-  { icon: Zap, label: "RAPIDS / cuDF", sub: "GPU processing" },
-  { icon: Sparkles, label: "Gemini AI", sub: "Insights & summary" },
+  { icon: MessageSquare, label: "Community Reports", sub: "SMS · Web · Field · CSV" },
+  { icon: Cloud, label: "Cloud Storage", sub: "Incident CSV bucket" },
+  { icon: Database, label: "BigQuery", sub: "incident_reports table" },
+  { icon: Zap, label: "RAPIDS / cuDF", sub: "GPU risk scoring" },
+  { icon: Sparkles, label: "Gemini AI", sub: "Plain-language summary" },
   { icon: Boxes, label: "Response Dashboard", sub: "Decisions & action" },
 ];
 

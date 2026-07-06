@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Boxes,
+  Bot,
   Clock,
   Cloud,
   Database,

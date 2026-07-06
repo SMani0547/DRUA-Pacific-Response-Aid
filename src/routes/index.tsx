@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Boxes,
+  Bot,
   Clock,
   Cloud,
   Database,
@@ -184,6 +185,7 @@ function Dashboard() {
         <GoogleCloudSection />
         <AccelerationSection />
         <PipelineSection />
+        <AgentToolsSection />
       </main>
       <Footer />
       <AreaDetailsSheet
@@ -1424,6 +1426,63 @@ function PipelineSection() {
           ))}
         </div>
       </Card>
+    </section>
+  );
+}
+
+function AgentToolsSection() {
+  const tools = [
+    {
+      name: "list_priority_reports",
+      icon: Table2,
+      description: "Returns ranked emergency reports sorted by AI risk score, with optional severity and limit filters.",
+      example: "Show the top 5 critical reports.",
+    },
+    {
+      name: "get_area_status",
+      icon: MapPin,
+      description: "Returns the current status, risk level, resource condition, and recommended action for a selected area.",
+      example: "Get the status for Rakiraki.",
+    },
+    {
+      name: "response_summary",
+      icon: Sparkles,
+      description: "Returns a Gemini-powered response summary and top-line emergency statistics.",
+      example: "Summarize the current response situation.",
+    },
+  ];
+
+  return (
+    <section>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <SectionTitle
+          eyebrow="Agent integrations"
+          title="Agent-Ready Decision Tools"
+          subtitle="Structured decision-support tools that can be used by AI agents, emergency systems, or future integrations."
+        />
+        <Badge variant="secondary" className="w-fit shrink-0 rounded-full text-xs">
+          <Bot className="mr-1 h-3 w-3" /> Agent-ready
+        </Badge>
+      </div>
+      <p className="mt-4 text-xs text-muted-foreground sm:text-sm">
+        These tools allow future AI agents or external response systems to access structured decision intelligence.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {tools.map((tool) => (
+          <Card key={tool.name} className="rounded-2xl border-border/70 p-4 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <tool.icon className="h-4 w-4" />
+              </div>
+              <div className="font-mono text-xs font-semibold text-primary">{tool.name}</div>
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{tool.description}</p>
+            <div className="mt-3 rounded-lg border border-border/70 bg-muted/30 px-2.5 py-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Example:</span> “{tool.example}”
+            </div>
+          </Card>
+        ))}
+      </div>
     </section>
   );
 }

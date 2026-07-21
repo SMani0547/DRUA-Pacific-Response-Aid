@@ -107,6 +107,8 @@ import {
 } from "@/lib/mock-data";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 import {
   ClipboardList,
   KanbanSquare,

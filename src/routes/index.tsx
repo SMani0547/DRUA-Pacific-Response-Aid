@@ -82,19 +82,36 @@ import {
   Radio,
   ShieldCheck,
   Truck,
-  UserCog,
+  
 } from "lucide-react";
 import {
   aiSummary,
   chatSuggestions,
+  computeRiskScore,
+  generateActionPlan,
   getMockAssistantReply,
   overviewStats,
   priorityReports,
+  REPORT_STATUSES,
   riskTrend,
   type ChatMessage,
   type PriorityReport,
+  type ReportStatus,
+  type ReporterType,
+  type RoadAccess,
   type Severity,
+  type Urgency,
 } from "@/lib/mock-data";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  ClipboardList,
+  KanbanSquare,
+  Plus,
+  TrendingDown,
+  TrendingUp as TrendingUpIcon,
+  Minus,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -114,6 +131,9 @@ function Dashboard() {
     kind: "success" | "error";
     text: string;
   } | null>(null);
+  const [statusLog, setStatusLog] = useState<
+    { id: string; area: string; from: ReportStatus; to: ReportStatus; at: string }[]
+  >([]);
   const selected = reports.find((r) => r.id === selectedId) ?? null;
 
   const affectedData = useMemo(() => {
@@ -160,7 +180,73 @@ function Dashboard() {
   function resetReports() {
     setReports(priorityReports);
     setSelectedId(null);
+    setStatusLog([]);
     setImportNotice({ kind: "success", text: "Restored the default sample dataset." });
+  }
+
+  function handleSubmitReport(input: {
+    area: string;
+    issue: string;
+    severity: Severity;
+    peopleAffected: number;
+    resources: string;
+    urgency: Urgency;
+    roadAccess: RoadAccess;
+    reporterType: ReporterType;
+    description: string;
+  }) {
+    const risk = computeRiskScore({
+      severity: input.severity,
+      peopleAffected: input.peopleAffected,
+      roadAccess: input.roadAccess,
+      urgency: input.urgency,
+      resources: input.resources,
+    });
+    const now = new Date();
+    const next: PriorityReport = {
+      id: `new-${now.getTime().toString(36)}`,
+      area: input.area,
+      issue: input.issue,
+      severity: input.severity,
+      peopleAffected: input.peopleAffected,
+      resources: input.resources || "—",
+      riskScore: risk,
+      action:
+        input.severity === "Critical"
+          ? "Dispatch response team immediately"
+          : input.severity === "High"
+          ? "Assign response lead within 2 hours"
+          : "Review and monitor at next cycle",
+      status: "New",
+      urgency: input.urgency,
+      roadAccess: input.roadAccess,
+      description: input.description,
+      reporterType: input.reporterType,
+      previousRiskScore: risk,
+      previousSeverity: input.severity,
+      updatedAt: now.toISOString(),
+    };
+    setReports((rs) => [next, ...rs]);
+    setImportNotice({
+      kind: "success",
+      text: `New report from ${input.reporterType} added — ${input.area} · risk ${risk}.`,
+    });
+  }
+
+  function updateStatus(id: string, to: ReportStatus) {
+    setReports((rs) =>
+      rs.map((r) => {
+        if (r.id !== id) return r;
+        const from = r.status ?? "New";
+        if (from !== to) {
+          setStatusLog((log) => [
+            { id, area: r.area, from, to, at: new Date().toISOString() },
+            ...log,
+          ].slice(0, 20));
+        }
+        return { ...r, status: to, updatedAt: new Date().toISOString() };
+      }),
+    );
   }
 
   return (
@@ -171,6 +257,7 @@ function Dashboard() {
         <ImportBar
           onImport={handleImport}
           onReset={resetReports}
+          onSubmitReport={handleSubmitReport}
           notice={importNotice}
           onDismiss={() => setImportNotice(null)}
           count={reports.length}
@@ -180,7 +267,14 @@ function Dashboard() {
           <TrendChart />
           <AffectedChart data={affectedData} />
         </div>
-        <PriorityTable reports={reports} onSelect={setSelectedId} selectedId={selectedId} />
+        <CommandBoard reports={reports} onSelect={setSelectedId} onStatusChange={updateStatus} />
+        <SituationChange reports={reports} statusLog={statusLog} />
+        <PriorityTable
+          reports={reports}
+          onSelect={setSelectedId}
+          selectedId={selectedId}
+          onStatusChange={updateStatus}
+        />
         <div className="grid gap-6 lg:grid-cols-5">
           <AiSummaryCard reports={reports} />
           <ChatPanel />
@@ -195,6 +289,7 @@ function Dashboard() {
         report={selected}
         open={selected !== null}
         onOpenChange={(o) => !o && setSelectedId(null)}
+        onStatusChange={updateStatus}
       />
     </div>
   );
@@ -203,12 +298,24 @@ function Dashboard() {
 function ImportBar({
   onImport,
   onReset,
+  onSubmitReport,
   notice,
   onDismiss,
   count,
 }: {
   onImport: (text: string, fileName: string) => void;
   onReset: () => void;
+  onSubmitReport: (input: {
+    area: string;
+    issue: string;
+    severity: Severity;
+    peopleAffected: number;
+    resources: string;
+    urgency: Urgency;
+    roadAccess: RoadAccess;
+    reporterType: ReporterType;
+    description: string;
+  }) => void;
   notice: { kind: "success" | "error"; text: string } | null;
   onDismiss: () => void;
   count: number;
@@ -268,10 +375,11 @@ function ImportBar({
             <Button variant="outline" size="sm" onClick={onReset} className="rounded-lg">
               Reset
             </Button>
-            <Button size="sm" onClick={pickFile} className="rounded-lg">
+            <Button size="sm" variant="outline" onClick={pickFile} className="rounded-lg">
               <Upload className="mr-1.5 h-4 w-4" />
               Import CSV
             </Button>
+            <SubmitReportDialog onSubmit={onSubmitReport} />
           </div>
         </div>
         {notice && (
@@ -497,10 +605,12 @@ function PriorityTable({
   reports,
   onSelect,
   selectedId,
+  onStatusChange,
 }: {
   reports: PriorityReport[];
   onSelect: (id: string) => void;
   selectedId: string | null;
+  onStatusChange: (id: string, status: ReportStatus) => void;
 }) {
   const [issueFilter, setIssueFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<Severity | "all">("all");
@@ -599,8 +709,8 @@ function PriorityTable({
                 <th className="px-5 py-3">Issue</th>
                 <th className="px-5 py-3">Severity</th>
                 <th className="px-5 py-3">People</th>
-                <th className="px-5 py-3">Resources</th>
                 <th className="px-5 py-3">AI Score</th>
+                <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Action</th>
                 <th className="px-5 py-3 sr-only">Open</th>
               </tr>
@@ -635,9 +745,14 @@ function PriorityTable({
                       </span>
                     </td>
                     <td className="px-5 py-4 tabular-nums">{r.peopleAffected.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{r.resources}</td>
                     <td className="px-5 py-4">
                       <RiskScore score={r.riskScore} />
+                    </td>
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                      <StatusPicker
+                        value={r.status ?? "New"}
+                        onChange={(s) => onStatusChange(r.id, s)}
+                      />
                     </td>
                     <td className="px-5 py-4 text-muted-foreground">{r.action}</td>
                     <td className="px-5 py-4 text-right">
@@ -664,10 +779,12 @@ function AreaDetailsSheet({
   report,
   open,
   onOpenChange,
+  onStatusChange,
 }: {
   report: PriorityReport | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onStatusChange: (id: string, status: ReportStatus) => void;
 }) {
   if (!report) return null;
   const resources = report.resources.split(",").map((r) => r.trim()).filter(Boolean);
@@ -675,7 +792,7 @@ function AreaDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader className="space-y-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
@@ -687,6 +804,12 @@ function AreaDetailsSheet({
             <Badge variant="outline" className="rounded-full text-xs">
               AI score {report.riskScore}
             </Badge>
+            <StatusBadge status={report.status ?? "New"} />
+            {report.urgency && (
+              <Badge variant="secondary" className="rounded-full text-xs">
+                <Timer className="mr-1 h-3 w-3" /> {report.urgency}
+              </Badge>
+            )}
           </div>
           <SheetTitle className="text-2xl">{report.area}</SheetTitle>
           <SheetDescription className="flex items-center gap-1.5 text-sm">
@@ -711,10 +834,29 @@ function AreaDetailsSheet({
                 label="AI risk score"
                 value={`${report.riskScore}/100`}
               />
-              <StatTile icon={AlertTriangle} label="Severity" value={report.severity} />
-              <StatTile icon={Radio} label="Status" value="Active" />
+              <StatTile
+                icon={AlertTriangle}
+                label="Road access"
+                value={report.roadAccess ?? "Unknown"}
+              />
+              <StatTile
+                icon={Radio}
+                label="Reporter"
+                value={report.reporterType ?? "Community"}
+              />
             </div>
           </div>
+
+          {report.description && (
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Report details
+              </div>
+              <p className="mt-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-sm text-foreground/90">
+                {report.description}
+              </p>
+            </div>
+          )}
 
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -755,13 +897,44 @@ function AreaDetailsSheet({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button className="flex-1 rounded-xl">
-              <Truck className="mr-2 h-4 w-4" /> Dispatch team
-            </Button>
-            <Button variant="outline" className="flex-1 rounded-xl">
-              <UserCog className="mr-2 h-4 w-4" /> Assign lead
-            </Button>
+          <ActionPlan report={report} />
+
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Human approval workflow
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              AI recommends the action — a duty officer must approve before dispatch.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Under Review")}
+              >
+                <ClipboardList className="mr-2 h-4 w-4" /> Send to Review
+              </Button>
+              <Button
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Approved")}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Dispatched")}
+              >
+                <Truck className="mr-2 h-4 w-4" /> Mark Dispatched
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Resolved")}
+              >
+                <ShieldCheck className="mr-2 h-4 w-4" /> Mark Resolved
+              </Button>
+            </div>
           </div>
         </div>
       </SheetContent>
@@ -1543,5 +1716,500 @@ function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+const STATUS_STYLES: Record<ReportStatus, string> = {
+  New: "bg-slate-500/10 text-slate-700 border-slate-500/30",
+  "Under Review": "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  Approved: "bg-blue-500/10 text-blue-700 border-blue-500/30",
+  Dispatched: "bg-primary/10 text-primary border-primary/30",
+  Resolved: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+};
+
+function StatusBadge({ status }: { status: ReportStatus }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        STATUS_STYLES[status],
+      )}
+    >
+      {status}
+    </span>
+  );
+}
+
+function StatusPicker({
+  value,
+  onChange,
+}: {
+  value: ReportStatus;
+  onChange: (v: ReportStatus) => void;
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as ReportStatus)}>
+      <SelectTrigger className="h-8 w-36 text-xs" aria-label="Change status">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {REPORT_STATUSES.map((s) => (
+          <SelectItem key={s} value={s} className="text-xs">
+            {s}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function ActionPlan({ report }: { report: PriorityReport }) {
+  const plan = generateActionPlan(report);
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          AI Response Action Plan
+        </div>
+        <Badge variant="secondary" className="rounded-full text-[10px]">
+          <Sparkles className="mr-1 h-3 w-3" /> Gemini AI Agent
+        </Badge>
+      </div>
+      <ol className="mt-3 space-y-2">
+        {plan.map((p, i) => (
+          <li
+            key={i}
+            className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3"
+          >
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+              {i + 1}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm text-foreground">{p.step}</div>
+              <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Timer className="h-3 w-3" /> ETA: {p.eta}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function SubmitReportDialog({
+  onSubmit,
+}: {
+  onSubmit: (input: {
+    area: string;
+    issue: string;
+    severity: Severity;
+    peopleAffected: number;
+    resources: string;
+    urgency: Urgency;
+    roadAccess: RoadAccess;
+    reporterType: ReporterType;
+    description: string;
+  }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [area, setArea] = useState("");
+  const [issue, setIssue] = useState("");
+  const [severity, setSeverity] = useState<Severity>("High");
+  const [peopleAffected, setPeopleAffected] = useState<string>("");
+  const [resources, setResources] = useState("");
+  const [urgency, setUrgency] = useState<Urgency>("Within 6h");
+  const [roadAccess, setRoadAccess] = useState<RoadAccess>("Open");
+  const [reporterType, setReporterType] = useState<ReporterType>("Community");
+  const [description, setDescription] = useState("");
+
+  function reset() {
+    setArea("");
+    setIssue("");
+    setSeverity("High");
+    setPeopleAffected("");
+    setResources("");
+    setUrgency("Within 6h");
+    setRoadAccess("Open");
+    setReporterType("Community");
+    setDescription("");
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const people = Math.max(0, Math.round(Number(peopleAffected) || 0));
+    if (!area.trim() || !issue.trim()) return;
+    onSubmit({
+      area: area.trim(),
+      issue: issue.trim(),
+      severity,
+      peopleAffected: people,
+      resources: resources.trim(),
+      urgency,
+      roadAccess,
+      reporterType,
+      description: description.trim(),
+    });
+    reset();
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="rounded-lg">
+          <Plus className="mr-1.5 h-4 w-4" /> Submit report
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Submit new community report</DialogTitle>
+          <DialogDescription>
+            Add an on-the-ground incident. The AI risk score is computed automatically from severity,
+            population, road access, and urgency.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="area">Area</Label>
+              <Input
+                id="area"
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                placeholder="e.g. Rakiraki"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="issue">Issue type</Label>
+              <Input
+                id="issue"
+                value={issue}
+                onChange={(e) => setIssue(e.target.value)}
+                placeholder="e.g. Flash Flooding"
+                required
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Severity</Label>
+              <Select value={severity} onValueChange={(v) => setSeverity(v as Severity)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Critical">Critical</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="people">People affected</Label>
+              <Input
+                id="people"
+                type="number"
+                min={0}
+                value={peopleAffected}
+                onChange={(e) => setPeopleAffected(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Urgency</Label>
+              <Select value={urgency} onValueChange={(v) => setUrgency(v as Urgency)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Immediate">Immediate</SelectItem>
+                  <SelectItem value="Within 6h">Within 6h</SelectItem>
+                  <SelectItem value="Within 24h">Within 24h</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Road access</Label>
+              <Select value={roadAccess} onValueChange={(v) => setRoadAccess(v as RoadAccess)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Open">Open</SelectItem>
+                  <SelectItem value="Limited">Limited</SelectItem>
+                  <SelectItem value="Blocked">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Reporter</Label>
+              <Select value={reporterType} onValueChange={(v) => setReporterType(v as ReporterType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Community">Community</SelectItem>
+                  <SelectItem value="District Officer">District Officer</SelectItem>
+                  <SelectItem value="NGO">NGO</SelectItem>
+                  <SelectItem value="Hospital">Hospital</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="resources">Resources available</Label>
+              <Input
+                id="resources"
+                value={resources}
+                onChange={(e) => setResources(e.target.value)}
+                placeholder="e.g. 2 boats, 1 medical team"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Short field note from the reporter…"
+              rows={3}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              <Plus className="mr-1.5 h-4 w-4" /> Submit report
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CommandBoard({
+  reports,
+  onSelect,
+  onStatusChange,
+}: {
+  reports: PriorityReport[];
+  onSelect: (id: string) => void;
+  onStatusChange: (id: string, s: ReportStatus) => void;
+}) {
+  const grouped = useMemo(() => {
+    const g: Record<ReportStatus, PriorityReport[]> = {
+      New: [],
+      "Under Review": [],
+      Approved: [],
+      Dispatched: [],
+      Resolved: [],
+    };
+    for (const r of reports) g[r.status ?? "New"].push(r);
+    for (const k of REPORT_STATUSES) g[k].sort((a, b) => b.riskScore - a.riskScore);
+    return g;
+  }, [reports]);
+
+  return (
+    <section>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <SectionTitle
+          eyebrow="Command board"
+          title="Live response pipeline"
+          subtitle="Every active report moves through New → Under Review → Approved → Dispatched → Resolved. Approval is a human decision, ranking is AI."
+        />
+        <Badge variant="secondary" className="w-fit shrink-0 rounded-full text-xs">
+          <KanbanSquare className="mr-1 h-3 w-3" /> Kanban view
+        </Badge>
+      </div>
+      <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        {REPORT_STATUSES.map((status) => (
+          <div
+            key={status}
+            className="flex flex-col rounded-2xl border border-border/70 bg-muted/30 p-3"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <StatusBadge status={status} />
+              <span className="text-xs font-medium text-muted-foreground">
+                {grouped[status].length}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {grouped[status].length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border/70 bg-background/40 px-3 py-6 text-center text-[11px] text-muted-foreground">
+                  Nothing here.
+                </div>
+              ) : (
+                grouped[status].map((r) => (
+                  <Card
+                    key={r.id}
+                    className="cursor-pointer rounded-xl border-border/70 p-3 shadow-sm transition hover:shadow-md"
+                    onClick={() => onSelect(r.id)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">{r.area}</div>
+                        <div className="truncate text-[11px] text-muted-foreground">{r.issue}</div>
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                          severityStyles[r.severity],
+                        )}
+                      >
+                        {r.severity}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {r.peopleAffected.toLocaleString()}
+                      </span>
+                      <span className="font-semibold text-foreground">Risk {r.riskScore}</span>
+                    </div>
+                    <div
+                      className="mt-2 flex items-center justify-between gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {r.urgency && (
+                        <Badge variant="outline" className="rounded-full text-[10px]">
+                          <Timer className="mr-1 h-3 w-3" />
+                          {r.urgency}
+                        </Badge>
+                      )}
+                      <StatusPicker
+                        value={r.status ?? "New"}
+                        onChange={(s) => onStatusChange(r.id, s)}
+                      />
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SituationChange({
+  reports,
+  statusLog,
+}: {
+  reports: PriorityReport[];
+  statusLog: { id: string; area: string; from: ReportStatus; to: ReportStatus; at: string }[];
+}) {
+  const changed = useMemo(
+    () =>
+      reports.filter(
+        (r) =>
+          (r.previousRiskScore != null && r.previousRiskScore !== r.riskScore) ||
+          (r.previousSeverity != null && r.previousSeverity !== r.severity),
+      ),
+    [reports],
+  );
+
+  if (changed.length === 0 && statusLog.length === 0) return null;
+
+  return (
+    <section>
+      <SectionTitle
+        eyebrow="Situation change"
+        title="What changed since the last snapshot"
+        subtitle="A running log of risk shifts and human approvals — so the EOC always knows what moved."
+      />
+      <Card className="mt-6 rounded-2xl border-border/70 p-5 shadow-sm">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div>
+            <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Risk & severity deltas
+            </div>
+            {changed.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-xs text-muted-foreground">
+                No risk changes since the last cycle.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {changed.map((r) => {
+                  const delta = r.previousRiskScore != null ? r.riskScore - r.previousRiskScore : 0;
+                  const Icon = delta > 0 ? TrendingUpIcon : delta < 0 ? TrendingDown : Minus;
+                  const tone =
+                    delta > 0 ? "text-destructive" : delta < 0 ? "text-emerald-600" : "text-muted-foreground";
+                  return (
+                    <li
+                      key={r.id}
+                      className="flex items-start gap-3 rounded-xl border border-border/70 bg-background p-3"
+                    >
+                      <div className={cn("mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-muted", tone)}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">{r.area}</span>
+                          <StatusBadge status={r.status ?? "New"} />
+                        </div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          Risk {r.previousRiskScore ?? "—"} →{" "}
+                          <span className={cn("font-semibold", tone)}>
+                            {r.riskScore}
+                            {delta !== 0 && ` (${delta > 0 ? "+" : ""}${delta})`}
+                          </span>
+                          {r.previousSeverity && r.previousSeverity !== r.severity && (
+                            <> · Severity {r.previousSeverity} → {r.severity}</>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          <div>
+            <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Approval activity
+            </div>
+            {statusLog.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border/70 px-3 py-4 text-xs text-muted-foreground">
+                No approvals yet this session. Use the action buttons in a report to advance status.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {statusLog.map((e, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-3 rounded-xl border border-border/70 bg-background p-3"
+                  >
+                    <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <ClipboardList className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold">{e.area}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {e.from} → <span className="font-semibold text-foreground">{e.to}</span>
+                        {" · "}
+                        {new Date(e.at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </Card>
+    </section>
   );
 }

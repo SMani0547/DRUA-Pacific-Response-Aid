@@ -1,5 +1,28 @@
 export type Severity = "Critical" | "High" | "Medium" | "Low";
 
+export type ReportStatus =
+  | "New"
+  | "Under Review"
+  | "Approved"
+  | "Dispatched"
+  | "Resolved";
+
+export type Urgency = "Immediate" | "Within 6h" | "Within 24h";
+export type RoadAccess = "Open" | "Limited" | "Blocked";
+export type ReporterType =
+  | "Community"
+  | "District Officer"
+  | "NGO"
+  | "Hospital";
+
+export const REPORT_STATUSES: ReportStatus[] = [
+  "New",
+  "Under Review",
+  "Approved",
+  "Dispatched",
+  "Resolved",
+];
+
 export interface PriorityReport {
   id: string;
   area: string;
@@ -9,6 +32,40 @@ export interface PriorityReport {
   resources: string;
   riskScore: number;
   action: string;
+  status?: ReportStatus;
+  urgency?: Urgency;
+  roadAccess?: RoadAccess;
+  description?: string;
+  reporterType?: ReporterType;
+  previousRiskScore?: number;
+  previousSeverity?: Severity;
+  updatedAt?: string;
+}
+
+export interface RiskInput {
+  severity: Severity;
+  peopleAffected: number;
+  roadAccess?: RoadAccess;
+  urgency?: Urgency;
+  resources?: string;
+}
+
+export function computeRiskScore(input: RiskInput): number {
+  const sevBase: Record<Severity, number> = {
+    Critical: 78,
+    High: 60,
+    Medium: 42,
+    Low: 22,
+  };
+  let score = sevBase[input.severity];
+  score += Math.min(15, Math.round(input.peopleAffected / 400));
+  if (input.roadAccess === "Blocked") score += 6;
+  else if (input.roadAccess === "Limited") score += 3;
+  if (input.urgency === "Immediate") score += 6;
+  else if (input.urgency === "Within 6h") score += 3;
+  const res = (input.resources ?? "").toLowerCase();
+  if (!res || res === "—" || res.includes("none")) score += 4;
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 export const priorityReports: PriorityReport[] = [
@@ -21,6 +78,13 @@ export const priorityReports: PriorityReport[] = [
     resources: "2 boats, 1 medical team",
     riskScore: 94,
     action: "Deploy rescue teams immediately",
+    status: "Under Review",
+    urgency: "Immediate",
+    roadAccess: "Blocked",
+    reporterType: "District Officer",
+    previousRiskScore: 87,
+    previousSeverity: "High",
+    updatedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
   },
   {
     id: "2",
@@ -31,6 +95,13 @@ export const priorityReports: PriorityReport[] = [
     resources: "3 boats, evacuation buses",
     riskScore: 89,
     action: "Evacuate low-lying settlements",
+    status: "Approved",
+    urgency: "Immediate",
+    roadAccess: "Limited",
+    reporterType: "District Officer",
+    previousRiskScore: 82,
+    previousSeverity: "Critical",
+    updatedAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
   },
   {
     id: "3",
@@ -41,6 +112,13 @@ export const priorityReports: PriorityReport[] = [
     resources: "1 clearing crew",
     riskScore: 76,
     action: "Dispatch clearing crew within 2 hrs",
+    status: "Dispatched",
+    urgency: "Within 6h",
+    roadAccess: "Blocked",
+    reporterType: "NGO",
+    previousRiskScore: 71,
+    previousSeverity: "High",
+    updatedAt: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
   },
   {
     id: "4",
@@ -51,6 +129,13 @@ export const priorityReports: PriorityReport[] = [
     resources: "4 water tankers",
     riskScore: 71,
     action: "Distribute water to priority zones",
+    status: "New",
+    urgency: "Within 6h",
+    roadAccess: "Open",
+    reporterType: "Community",
+    previousRiskScore: 71,
+    previousSeverity: "High",
+    updatedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
   },
   {
     id: "5",
@@ -61,6 +146,13 @@ export const priorityReports: PriorityReport[] = [
     resources: "Mobile clinic",
     riskScore: 58,
     action: "Deploy vector control & clinic",
+    status: "Under Review",
+    urgency: "Within 24h",
+    roadAccess: "Open",
+    reporterType: "Hospital",
+    previousRiskScore: 64,
+    previousSeverity: "High",
+    updatedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
   },
   {
     id: "6",
@@ -71,6 +163,13 @@ export const priorityReports: PriorityReport[] = [
     resources: "Utility crew",
     riskScore: 47,
     action: "Restore priority feeder lines",
+    status: "Dispatched",
+    urgency: "Within 6h",
+    roadAccess: "Open",
+    reporterType: "Community",
+    previousRiskScore: 47,
+    previousSeverity: "Medium",
+    updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: "7",
@@ -81,6 +180,13 @@ export const priorityReports: PriorityReport[] = [
     resources: "Municipal team",
     riskScore: 32,
     action: "Monitor and drain hotspots",
+    status: "Resolved",
+    urgency: "Within 24h",
+    roadAccess: "Open",
+    reporterType: "Community",
+    previousRiskScore: 41,
+    previousSeverity: "Medium",
+    updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -145,4 +251,49 @@ export function getMockAssistantReply(question: string): string {
     return "Flood-related reports: Rakiraki (Critical), Ba (Critical), Suva (Low). Combined 5,970 people affected. Rainfall is forecast to continue for the next 6 hours.";
   }
   return "I've analyzed the latest community reports. The highest-priority area is Rakiraki, followed by Ba. Ask about resources, top risks, or a specific area for more detail.";
+}
+
+export function generateActionPlan(r: PriorityReport): {
+  step: string;
+  eta: string;
+}[] {
+  const plan: { step: string; eta: string }[] = [];
+  const people = r.peopleAffected.toLocaleString();
+  const critical = r.severity === "Critical" || r.severity === "High";
+
+  if (r.roadAccess === "Blocked") {
+    plan.push({
+      step: `Deploy road-clearing crew to restore access to ${r.area}.`,
+      eta: "0–30 min",
+    });
+  }
+  plan.push({
+    step: critical
+      ? `Dispatch primary response team with ${r.resources} to ${r.area}.`
+      : `Assign a response lead and mobilize ${r.resources} to ${r.area}.`,
+    eta: r.urgency === "Immediate" ? "0–30 min" : r.urgency === "Within 6h" ? "0–2 hrs" : "2–6 hrs",
+  });
+  if (r.peopleAffected >= 1000) {
+    plan.push({
+      step: `Set up triage and shelter point for ~${people} affected residents.`,
+      eta: "30–90 min",
+    });
+  }
+  if (r.issue.toLowerCase().includes("flood") || r.issue.toLowerCase().includes("water")) {
+    plan.push({
+      step: "Pre-position water tankers and coordinate with WAF/Ministry of Health.",
+      eta: "1–3 hrs",
+    });
+  }
+  if (r.issue.toLowerCase().includes("health") || r.issue.toLowerCase().includes("dengue")) {
+    plan.push({
+      step: "Activate mobile clinic and vector-control sweep in the affected zone.",
+      eta: "1–4 hrs",
+    });
+  }
+  plan.push({
+    step: "Report status back to EOC and reassess risk at the next 30-min cycle.",
+    eta: "Ongoing",
+  });
+  return plan.slice(0, 5);
 }

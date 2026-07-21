@@ -113,6 +113,8 @@ export function parseReportsCsv(text: string): ImportResult {
       resources: rec.resources || "—",
       riskScore: Math.min(100, Math.max(0, rec.riskScore ?? computeFallbackScore(rec.severity, rec.peopleAffected))),
       action: rec.action || "Review and assign response team",
+      status: "New",
+      updatedAt: new Date().toISOString(),
     });
   }
   return { reports, errors };

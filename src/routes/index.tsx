@@ -792,7 +792,7 @@ function AreaDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader className="space-y-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
@@ -804,6 +804,12 @@ function AreaDetailsSheet({
             <Badge variant="outline" className="rounded-full text-xs">
               AI score {report.riskScore}
             </Badge>
+            <StatusBadge status={report.status ?? "New"} />
+            {report.urgency && (
+              <Badge variant="secondary" className="rounded-full text-xs">
+                <Timer className="mr-1 h-3 w-3" /> {report.urgency}
+              </Badge>
+            )}
           </div>
           <SheetTitle className="text-2xl">{report.area}</SheetTitle>
           <SheetDescription className="flex items-center gap-1.5 text-sm">
@@ -828,10 +834,29 @@ function AreaDetailsSheet({
                 label="AI risk score"
                 value={`${report.riskScore}/100`}
               />
-              <StatTile icon={AlertTriangle} label="Severity" value={report.severity} />
-              <StatTile icon={Radio} label="Status" value="Active" />
+              <StatTile
+                icon={AlertTriangle}
+                label="Road access"
+                value={report.roadAccess ?? "Unknown"}
+              />
+              <StatTile
+                icon={Radio}
+                label="Reporter"
+                value={report.reporterType ?? "Community"}
+              />
             </div>
           </div>
+
+          {report.description && (
+            <div>
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Report details
+              </div>
+              <p className="mt-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-sm text-foreground/90">
+                {report.description}
+              </p>
+            </div>
+          )}
 
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -872,13 +897,44 @@ function AreaDetailsSheet({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button className="flex-1 rounded-xl">
-              <Truck className="mr-2 h-4 w-4" /> Dispatch team
-            </Button>
-            <Button variant="outline" className="flex-1 rounded-xl">
-              <UserCog className="mr-2 h-4 w-4" /> Assign lead
-            </Button>
+          <ActionPlan report={report} />
+
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Human approval workflow
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              AI recommends the action — a duty officer must approve before dispatch.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Under Review")}
+              >
+                <ClipboardList className="mr-2 h-4 w-4" /> Send to Review
+              </Button>
+              <Button
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Approved")}
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Dispatched")}
+              >
+                <Truck className="mr-2 h-4 w-4" /> Mark Dispatched
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => onStatusChange(report.id, "Resolved")}
+              >
+                <ShieldCheck className="mr-2 h-4 w-4" /> Mark Resolved
+              </Button>
+            </div>
           </div>
         </div>
       </SheetContent>

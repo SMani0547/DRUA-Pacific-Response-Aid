@@ -15,8 +15,12 @@ The dashboard was extended from a monitoring surface into an end-to-end **decide
 4. **Situation Change Summary** — a running card that lists every report whose risk or severity moved since the last snapshot (with delta and up/down arrow) plus an approval activity log for the current session.
 5. **Command Board** — a Kanban-style board grouped by status columns. Each card shows area, severity, risk score, urgency, and a status picker. Complements the ranked table with a pipeline view.
 6. **Richer PDF Export** — the exported response report now includes a Status column, a "Changes since last update" section, and an AI Response Action Plan for the top 3 priorities, alongside the existing Gemini summary.
+7. **What-If Response Simulator** — pick any live incident and adjust severity, urgency, road access, resource status, or people affected. The AI risk score, ranking position, and a plain-language explanation ("Rakiraki increased from 82 to 96 because road access became blocked, resources dropped to Low, and affected population increased") update in real time. Lets duty officers stress-test decisions before committing.
+8. **Resource Allocation Optimizer** — enter available response teams, water trucks, medical kits, evacuation vehicles, and road-clearance crews. The optimizer distributes them across the top-5 open incidents by risk, and for each area shows assigned resources, the reason for that mix, urgency, and a suggested next action.
+9. **Explainable Risk Score Breakdown** — every incident side panel now includes a "Why this score?" panel showing the exact contribution of severity, population affected, urgency, resource shortage, and road access as visual bars and percentages, plus a plain-language explanation of why the score is high or low.
 
 All refinements reuse the existing shadcn primitives, keep the MCP tools and CSV import contract intact, and keep the workflow offline-capable (the live Gemini summary button remains the only network AI call).
+
 
 ---
 

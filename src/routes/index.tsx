@@ -88,16 +88,19 @@ import {
   aiSummary,
   chatSuggestions,
   computeRiskScore,
+  explainScore,
   generateActionPlan,
   getMockAssistantReply,
   overviewStats,
   priorityReports,
   REPORT_STATUSES,
+  riskBreakdown,
   riskTrend,
   type ChatMessage,
   type PriorityReport,
   type ReportStatus,
   type ReporterType,
+  type RiskFactor,
   type RoadAccess,
   type Severity,
   type Urgency,
@@ -107,11 +110,14 @@ import { Label } from "@/components/ui/label";
 import {
   ClipboardList,
   KanbanSquare,
+  Package,
   Plus,
+  Sliders,
   TrendingDown,
   TrendingUp as TrendingUpIcon,
   Minus,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/")({
   component: Dashboard,

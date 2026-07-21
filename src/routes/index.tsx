@@ -87,14 +87,31 @@ import {
 import {
   aiSummary,
   chatSuggestions,
+  computeRiskScore,
+  generateActionPlan,
   getMockAssistantReply,
   overviewStats,
   priorityReports,
+  REPORT_STATUSES,
   riskTrend,
   type ChatMessage,
   type PriorityReport,
+  type ReportStatus,
+  type ReporterType,
+  type RoadAccess,
   type Severity,
+  type Urgency,
 } from "@/lib/mock-data";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  ClipboardList,
+  KanbanSquare,
+  Plus,
+  TrendingDown,
+  TrendingUp as TrendingUpIcon,
+  Minus,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,

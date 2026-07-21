@@ -297,3 +297,83 @@ export function generateActionPlan(r: PriorityReport): {
   });
   return plan.slice(0, 5);
 }
+
+export interface RiskFactor {
+  key: "severity" | "people" | "urgency" | "resources" | "road";
+  label: string;
+  value: number;
+  detail: string;
+}
+
+export function riskBreakdown(r: {
+  severity: Severity;
+  peopleAffected: number;
+  roadAccess?: RoadAccess;
+  urgency?: Urgency;
+  resources?: string;
+}): { factors: RiskFactor[]; total: number } {
+  const sevBase: Record<Severity, number> = {
+    Critical: 78,
+    High: 60,
+    Medium: 42,
+    Low: 22,
+  };
+  const people = Math.min(15, Math.round(r.peopleAffected / 400));
+  const road =
+    r.roadAccess === "Blocked" ? 6 : r.roadAccess === "Limited" ? 3 : 0;
+  const urgency =
+    r.urgency === "Immediate" ? 6 : r.urgency === "Within 6h" ? 3 : 0;
+  const res = (r.resources ?? "").toLowerCase();
+  const resShort = !res || res === "—" || res.includes("none") ? 4 : 0;
+  const factors: RiskFactor[] = [
+    {
+      key: "severity",
+      label: "Severity",
+      value: sevBase[r.severity],
+      detail: `${r.severity} baseline`,
+    },
+    {
+      key: "people",
+      label: "Population affected",
+      value: people,
+      detail: `${r.peopleAffected.toLocaleString()} residents`,
+    },
+    {
+      key: "urgency",
+      label: "Urgency",
+      value: urgency,
+      detail: r.urgency ?? "Not set",
+    },
+    {
+      key: "resources",
+      label: "Resource shortage",
+      value: resShort,
+      detail: resShort ? "No / minimal resources on hand" : "Resources on hand",
+    },
+    {
+      key: "road",
+      label: "Road access",
+      value: road,
+      detail: r.roadAccess ?? "Open",
+    },
+  ];
+  const total = factors.reduce((s, f) => s + f.value, 0);
+  return { factors, total };
+}
+
+export function explainScore(total: number, factors: RiskFactor[]): string {
+  const top = [...factors].sort((a, b) => b.value - a.value).slice(0, 2);
+  if (total >= 80) {
+    return `Very high risk (${total}/100). Driven mainly by ${top
+      .map((f) => f.label.toLowerCase())
+      .join(" and ")}. Immediate dispatch recommended.`;
+  }
+  if (total >= 60) {
+    return `Elevated risk (${total}/100). ${top[0].label} is the largest contributor. Assign a response lead and monitor closely.`;
+  }
+  if (total >= 40) {
+    return `Moderate risk (${total}/100). Situation is manageable but should be reviewed at the next cycle.`;
+  }
+  return `Low risk (${total}/100). Monitor only — no dispatch required unless conditions change.`;
+}
+

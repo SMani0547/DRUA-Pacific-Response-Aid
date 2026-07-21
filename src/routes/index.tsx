@@ -906,7 +906,10 @@ function AreaDetailsSheet({
             </div>
           </div>
 
+          <RiskBreakdownPanel report={report} />
+
           <ActionPlan report={report} />
+
 
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

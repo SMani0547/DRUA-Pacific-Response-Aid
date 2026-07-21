@@ -298,12 +298,24 @@ function Dashboard() {
 function ImportBar({
   onImport,
   onReset,
+  onSubmitReport,
   notice,
   onDismiss,
   count,
 }: {
   onImport: (text: string, fileName: string) => void;
   onReset: () => void;
+  onSubmitReport: (input: {
+    area: string;
+    issue: string;
+    severity: Severity;
+    peopleAffected: number;
+    resources: string;
+    urgency: Urgency;
+    roadAccess: RoadAccess;
+    reporterType: ReporterType;
+    description: string;
+  }) => void;
   notice: { kind: "success" | "error"; text: string } | null;
   onDismiss: () => void;
   count: number;

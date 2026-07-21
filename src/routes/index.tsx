@@ -476,65 +476,42 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden border-b border-border/60">
+    <section className="relative overflow-hidden border-b border-border/60 bg-card">
       <div
         aria-hidden
-        className="absolute inset-0 z-0 opacity-[0.15]"
+        className="absolute inset-0 z-0 opacity-[0.06]"
         style={{
           backgroundImage: `url(${heroTapaPattern.url})`,
           backgroundRepeat: "repeat",
-          backgroundSize: "600px auto",
-          backgroundPosition: "center",
+          backgroundSize: "560px auto",
         }}
       />
-      <div
-        aria-hidden
-        className="absolute inset-0 z-10"
-        style={{
-          background:
-            "radial-gradient(1200px 600px at 80% -10%, oklch(0.72 0.14 210 / 0.25), transparent), radial-gradient(800px 400px at 10% 10%, oklch(0.35 0.14 255 / 0.2), transparent), linear-gradient(180deg, oklch(1 0 0 / 0.82), oklch(1 0 0 / 0.92))",
-        }}
-      />
-      <div className="relative z-20 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            Powered by Gemini AI + NVIDIA RAPIDS
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Gemini AI · NVIDIA RAPIDS
           </div>
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
             Pacific Response <span className="text-primary">Intelligence</span>
           </h1>
-          <p className="mt-5 text-lg text-muted-foreground sm:text-xl">
-            AI and accelerated data intelligence for faster community emergency decisions across Fiji and the Pacific.
+          <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
+            Faster, clearer emergency decisions for Fiji and the Pacific.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-xl">
               <a href="#dashboard">
-                View Response Dashboard
+                Open dashboard
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
             </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-xl">
-              <a href="#ai">See AI Insights</a>
-            </Button>
-          </div>
-          <div className="mt-10 grid max-w-2xl grid-cols-3 gap-6 text-sm">
-            {[
-              { icon: Shield, label: "7 districts monitored" },
-              { icon: Activity, label: "Real-time community signals" },
-              { icon: Gauge, label: "5.2x faster decisions" },
-            ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2 text-muted-foreground">
-                <Icon className="h-4 w-4 text-primary" />
-                {label}
-              </div>
-            ))}
           </div>
         </div>
       </div>
     </section>
   );
 }
+
 
 const statIcons = [Activity, AlertTriangle, Users, Shield, Clock];
 

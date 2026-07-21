@@ -259,7 +259,7 @@ function Dashboard() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <Hero />
-      <main id="dashboard" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
+      <main id="dashboard" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
         <ImportBar
           onImport={handleImport}
           onReset={resetReports}
@@ -269,29 +269,49 @@ function Dashboard() {
           count={reports.length}
         />
         <OverviewCards stats={overview} />
-        <div className="grid gap-6 lg:grid-cols-3">
-          <TrendChart />
-          <AffectedChart data={affectedData} />
-        </div>
-        <CommandBoard reports={reports} onSelect={setSelectedId} onStatusChange={updateStatus} />
-        <SituationChange reports={reports} statusLog={statusLog} />
-        <PriorityTable
-          reports={reports}
-          onSelect={setSelectedId}
-          selectedId={selectedId}
-          onStatusChange={updateStatus}
-        />
-        <WhatIfSimulator reports={reports} />
-        <ResourceOptimizer reports={reports} />
 
-        <div className="grid gap-6 lg:grid-cols-5">
-          <AiSummaryCard reports={reports} />
-          <ChatPanel />
-        </div>
-        <GoogleCloudSection />
-        <AccelerationSection />
-        <PipelineSection />
-        <AgentToolsSection />
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="w-full justify-start overflow-x-auto rounded-xl bg-muted/60 p-1">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="operations">Operations</TabsTrigger>
+            <TabsTrigger value="ai">AI Assistant</TabsTrigger>
+            <TabsTrigger value="tech">Tech Proof</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-6 space-y-8">
+            <div className="grid gap-6 lg:grid-cols-3">
+              <TrendChart />
+              <AffectedChart data={affectedData} />
+            </div>
+            <PriorityTable
+              reports={reports}
+              onSelect={setSelectedId}
+              selectedId={selectedId}
+              onStatusChange={updateStatus}
+            />
+          </TabsContent>
+
+          <TabsContent value="operations" className="mt-6 space-y-8">
+            <CommandBoard reports={reports} onSelect={setSelectedId} onStatusChange={updateStatus} />
+            <SituationChange reports={reports} statusLog={statusLog} />
+            <WhatIfSimulator reports={reports} />
+            <ResourceOptimizer reports={reports} />
+          </TabsContent>
+
+          <TabsContent value="ai" className="mt-6">
+            <div className="grid gap-6 lg:grid-cols-5">
+              <AiSummaryCard reports={reports} />
+              <ChatPanel />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tech" className="mt-6 space-y-8">
+            <GoogleCloudSection />
+            <AccelerationSection />
+            <PipelineSection />
+            <AgentToolsSection />
+          </TabsContent>
+        </Tabs>
       </main>
       <Footer />
       <AreaDetailsSheet
@@ -303,6 +323,7 @@ function Dashboard() {
     </div>
   );
 }
+
 
 function ImportBar({
   onImport,

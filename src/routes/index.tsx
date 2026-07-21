@@ -131,6 +131,9 @@ function Dashboard() {
     kind: "success" | "error";
     text: string;
   } | null>(null);
+  const [statusLog, setStatusLog] = useState<
+    { id: string; area: string; from: ReportStatus; to: ReportStatus; at: string }[]
+  >([]);
   const selected = reports.find((r) => r.id === selectedId) ?? null;
 
   const affectedData = useMemo(() => {
@@ -177,7 +180,73 @@ function Dashboard() {
   function resetReports() {
     setReports(priorityReports);
     setSelectedId(null);
+    setStatusLog([]);
     setImportNotice({ kind: "success", text: "Restored the default sample dataset." });
+  }
+
+  function handleSubmitReport(input: {
+    area: string;
+    issue: string;
+    severity: Severity;
+    peopleAffected: number;
+    resources: string;
+    urgency: Urgency;
+    roadAccess: RoadAccess;
+    reporterType: ReporterType;
+    description: string;
+  }) {
+    const risk = computeRiskScore({
+      severity: input.severity,
+      peopleAffected: input.peopleAffected,
+      roadAccess: input.roadAccess,
+      urgency: input.urgency,
+      resources: input.resources,
+    });
+    const now = new Date();
+    const next: PriorityReport = {
+      id: `new-${now.getTime().toString(36)}`,
+      area: input.area,
+      issue: input.issue,
+      severity: input.severity,
+      peopleAffected: input.peopleAffected,
+      resources: input.resources || "—",
+      riskScore: risk,
+      action:
+        input.severity === "Critical"
+          ? "Dispatch response team immediately"
+          : input.severity === "High"
+          ? "Assign response lead within 2 hours"
+          : "Review and monitor at next cycle",
+      status: "New",
+      urgency: input.urgency,
+      roadAccess: input.roadAccess,
+      description: input.description,
+      reporterType: input.reporterType,
+      previousRiskScore: risk,
+      previousSeverity: input.severity,
+      updatedAt: now.toISOString(),
+    };
+    setReports((rs) => [next, ...rs]);
+    setImportNotice({
+      kind: "success",
+      text: `New report from ${input.reporterType} added — ${input.area} · risk ${risk}.`,
+    });
+  }
+
+  function updateStatus(id: string, to: ReportStatus) {
+    setReports((rs) =>
+      rs.map((r) => {
+        if (r.id !== id) return r;
+        const from = r.status ?? "New";
+        if (from !== to) {
+          setStatusLog((log) => [
+            { id, area: r.area, from, to, at: new Date().toISOString() },
+            ...log,
+          ].slice(0, 20));
+        }
+        return { ...r, status: to, updatedAt: new Date().toISOString() };
+      }),
+    );
   }
 
   return (
@@ -188,6 +257,7 @@ function Dashboard() {
         <ImportBar
           onImport={handleImport}
           onReset={resetReports}
+          onSubmitReport={handleSubmitReport}
           notice={importNotice}
           onDismiss={() => setImportNotice(null)}
           count={reports.length}
@@ -197,7 +267,14 @@ function Dashboard() {
           <TrendChart />
           <AffectedChart data={affectedData} />
         </div>
-        <PriorityTable reports={reports} onSelect={setSelectedId} selectedId={selectedId} />
+        <CommandBoard reports={reports} onSelect={setSelectedId} onStatusChange={updateStatus} />
+        <SituationChange reports={reports} statusLog={statusLog} />
+        <PriorityTable
+          reports={reports}
+          onSelect={setSelectedId}
+          selectedId={selectedId}
+          onStatusChange={updateStatus}
+        />
         <div className="grid gap-6 lg:grid-cols-5">
           <AiSummaryCard reports={reports} />
           <ChatPanel />
@@ -212,6 +289,7 @@ function Dashboard() {
         report={selected}
         open={selected !== null}
         onOpenChange={(o) => !o && setSelectedId(null)}
+        onStatusChange={updateStatus}
       />
     </div>
   );

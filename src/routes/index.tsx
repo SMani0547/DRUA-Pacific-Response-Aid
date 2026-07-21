@@ -605,10 +605,12 @@ function PriorityTable({
   reports,
   onSelect,
   selectedId,
+  onStatusChange,
 }: {
   reports: PriorityReport[];
   onSelect: (id: string) => void;
   selectedId: string | null;
+  onStatusChange: (id: string, status: ReportStatus) => void;
 }) {
   const [issueFilter, setIssueFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<Severity | "all">("all");
@@ -707,8 +709,8 @@ function PriorityTable({
                 <th className="px-5 py-3">Issue</th>
                 <th className="px-5 py-3">Severity</th>
                 <th className="px-5 py-3">People</th>
-                <th className="px-5 py-3">Resources</th>
                 <th className="px-5 py-3">AI Score</th>
+                <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Action</th>
                 <th className="px-5 py-3 sr-only">Open</th>
               </tr>
@@ -743,9 +745,14 @@ function PriorityTable({
                       </span>
                     </td>
                     <td className="px-5 py-4 tabular-nums">{r.peopleAffected.toLocaleString()}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{r.resources}</td>
                     <td className="px-5 py-4">
                       <RiskScore score={r.riskScore} />
+                    </td>
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                      <StatusPicker
+                        value={r.status ?? "New"}
+                        onChange={(s) => onStatusChange(r.id, s)}
+                      />
                     </td>
                     <td className="px-5 py-4 text-muted-foreground">{r.action}</td>
                     <td className="px-5 py-4 text-right">
@@ -772,10 +779,12 @@ function AreaDetailsSheet({
   report,
   open,
   onOpenChange,
+  onStatusChange,
 }: {
   report: PriorityReport | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onStatusChange: (id: string, status: ReportStatus) => void;
 }) {
   if (!report) return null;
   const resources = report.resources.split(",").map((r) => r.trim()).filter(Boolean);

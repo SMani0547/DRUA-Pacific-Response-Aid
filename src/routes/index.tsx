@@ -375,10 +375,11 @@ function ImportBar({
             <Button variant="outline" size="sm" onClick={onReset} className="rounded-lg">
               Reset
             </Button>
-            <Button size="sm" onClick={pickFile} className="rounded-lg">
+            <Button size="sm" variant="outline" onClick={pickFile} className="rounded-lg">
               <Upload className="mr-1.5 h-4 w-4" />
               Import CSV
             </Button>
+            <SubmitReportDialog onSubmit={onSubmitReport} />
           </div>
         </div>
         {notice && (

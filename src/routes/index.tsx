@@ -2225,3 +2225,550 @@ function SituationChange({
     </section>
   );
 }
+
+// ============================================================
+// Risk breakdown panel (inside the area details sheet)
+// ============================================================
+const FACTOR_COLORS: Record<RiskFactor["key"], string> = {
+  severity: "bg-destructive",
+  people: "bg-primary",
+  urgency: "bg-amber-500",
+  resources: "bg-orange-500",
+  road: "bg-blue-500",
+};
+
+function RiskBreakdownPanel({ report }: { report: PriorityReport }) {
+  const { factors, total } = riskBreakdown(report);
+  const max = Math.max(...factors.map((f) => f.value), 1);
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Why this score?
+        </div>
+        <Badge variant="outline" className="rounded-full text-xs">
+          <Sparkles className="mr-1 h-3 w-3" /> Explainable AI
+        </Badge>
+      </div>
+      <div className="mt-3 space-y-2">
+        {factors.map((f) => {
+          const pct = total > 0 ? Math.round((f.value / total) * 100) : 0;
+          return (
+            <div key={f.key} className="rounded-lg border border-border/60 bg-card p-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <div>
+                  <div className="font-medium text-foreground">{f.label}</div>
+                  <div className="text-[11px] text-muted-foreground">{f.detail}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold tabular-nums">+{f.value}</div>
+                  <div className="text-[11px] text-muted-foreground">{pct}%</div>
+                </div>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn("h-full rounded-full", FACTOR_COLORS[f.key])}
+                  style={{ width: `${(f.value / max) * 100}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 rounded-lg bg-muted/40 p-2.5 text-xs text-muted-foreground">
+        {explainScore(report.riskScore, factors)}
+      </p>
+    </div>
+  );
+}
+
+// ============================================================
+// What-If Response Simulator
+// ============================================================
+function WhatIfSimulator({ reports }: { reports: PriorityReport[] }) {
+  const [selectedId, setSelectedId] = useState<string>(reports[0]?.id ?? "");
+  const base =
+    reports.find((r) => r.id === selectedId) ?? reports[0] ?? null;
+
+  const [severity, setSeverity] = useState<Severity>(base?.severity ?? "High");
+  const [people, setPeople] = useState<number>(base?.peopleAffected ?? 500);
+  const [urgency, setUrgency] = useState<Urgency>(base?.urgency ?? "Within 6h");
+  const [road, setRoad] = useState<RoadAccess>(base?.roadAccess ?? "Open");
+  const [resStatus, setResStatus] = useState<"Adequate" | "Low" | "None">(
+    "Adequate",
+  );
+
+  useEffect(() => {
+    if (!base) return;
+    setSeverity(base.severity);
+    setPeople(base.peopleAffected);
+    setUrgency(base.urgency ?? "Within 6h");
+    setRoad(base.roadAccess ?? "Open");
+    setResStatus("Adequate");
+  }, [selectedId]);
+
+  if (!base) return null;
+
+  const resourcesText =
+    resStatus === "None" ? "none available" : resStatus === "Low" ? "limited" : base.resources;
+
+  const newScore = computeRiskScore({
+    severity,
+    peopleAffected: people,
+    urgency,
+    roadAccess: road,
+    resources: resourcesText,
+  });
+  const delta = newScore - base.riskScore;
+
+  const ranked = [...reports].sort((a, b) => b.riskScore - a.riskScore);
+  const oldRank = ranked.findIndex((r) => r.id === base.id) + 1;
+  const projected = ranked
+    .map((r) => (r.id === base.id ? { ...r, riskScore: newScore } : r))
+    .sort((a, b) => b.riskScore - a.riskScore);
+  const newRank = projected.findIndex((r) => r.id === base.id) + 1;
+
+  const reasons: string[] = [];
+  if (severity !== base.severity) reasons.push(`severity changed to ${severity}`);
+  if (people !== base.peopleAffected)
+    reasons.push(
+      `affected population ${people > base.peopleAffected ? "rose" : "fell"} to ${people.toLocaleString()}`,
+    );
+  if (urgency !== (base.urgency ?? "Within 6h"))
+    reasons.push(`urgency set to ${urgency}`);
+  if (road !== (base.roadAccess ?? "Open"))
+    reasons.push(`road access became ${road.toLowerCase()}`);
+  if (resStatus !== "Adequate")
+    reasons.push(`resources dropped to ${resStatus.toLowerCase()}`);
+
+  const explanation = reasons.length
+    ? `${base.area} ${delta >= 0 ? "increased" : "decreased"} from ${base.riskScore} to ${newScore} because ${reasons.join(", ")}.`
+    : `No change — same inputs as the live incident.`;
+
+  return (
+    <section id="simulator">
+      <SectionTitle
+        eyebrow="What-If Simulator"
+        title="Simulate a change in the incident"
+        subtitle="Adjust the drivers and watch the AI risk score, ranking, and explanation update live."
+      />
+      <Card className="mt-6 rounded-2xl border-border/70 p-6">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="rounded-full text-xs">
+                <Sparkles className="mr-1 h-3 w-3" /> AI-assisted
+              </Badge>
+              <Badge variant="secondary" className="rounded-full text-xs">
+                <Sliders className="mr-1 h-3 w-3" /> Scenario planning
+              </Badge>
+            </div>
+
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Incident
+              </Label>
+              <Select value={selectedId} onValueChange={setSelectedId}>
+                <SelectTrigger className="mt-2 rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {reports.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.area} — {r.issue}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Severity
+                </Label>
+                <Select value={severity} onValueChange={(v) => setSeverity(v as Severity)}>
+                  <SelectTrigger className="mt-2 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(["Critical", "High", "Medium", "Low"] as Severity[]).map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Urgency
+                </Label>
+                <Select value={urgency} onValueChange={(v) => setUrgency(v as Urgency)}>
+                  <SelectTrigger className="mt-2 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(["Immediate", "Within 6h", "Within 24h"] as Urgency[]).map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {u}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Road access
+                </Label>
+                <Select value={road} onValueChange={(v) => setRoad(v as RoadAccess)}>
+                  <SelectTrigger className="mt-2 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(["Open", "Limited", "Blocked"] as RoadAccess[]).map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Resource status
+                </Label>
+                <Select
+                  value={resStatus}
+                  onValueChange={(v) => setResStatus(v as "Adequate" | "Low" | "None")}
+                >
+                  <SelectTrigger className="mt-2 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Adequate">Adequate</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="None">None</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  People affected: {people.toLocaleString()}
+                </Label>
+                <input
+                  type="range"
+                  min={0}
+                  max={10000}
+                  step={50}
+                  value={people}
+                  onChange={(e) => setPeople(Number(e.target.value))}
+                  className="mt-3 w-full accent-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-2xl border border-border/70 bg-muted/20 p-5">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Simulation result
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border/70 bg-card p-4">
+                <div className="text-xs text-muted-foreground">Current risk</div>
+                <div className="mt-1 text-3xl font-semibold tabular-nums">{base.riskScore}</div>
+                <div className="text-xs text-muted-foreground">Rank #{oldRank}</div>
+              </div>
+              <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Simulated risk</span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-0.5 text-[11px] font-medium",
+                      delta > 0
+                        ? "text-destructive"
+                        : delta < 0
+                        ? "text-emerald-600"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {delta > 0 ? (
+                      <TrendingUpIcon className="h-3 w-3" />
+                    ) : delta < 0 ? (
+                      <TrendingDown className="h-3 w-3" />
+                    ) : (
+                      <Minus className="h-3 w-3" />
+                    )}
+                    {delta > 0 ? `+${delta}` : delta}
+                  </span>
+                </div>
+                <div className="mt-1 text-3xl font-semibold tabular-nums text-primary">
+                  {newScore}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Rank #{newRank}
+                  {newRank !== oldRank && (
+                    <span
+                      className={cn(
+                        "ml-1 font-medium",
+                        newRank < oldRank ? "text-destructive" : "text-emerald-600",
+                      )}
+                    >
+                      ({newRank < oldRank ? "↑ moved up" : "↓ moved down"})
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border border-border/70 bg-card p-4">
+              <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                AI explanation
+              </div>
+              <p className="mt-2 text-sm text-foreground/90">{explanation}</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+// ============================================================
+// Resource Allocation Optimizer
+// ============================================================
+type ResourceKey =
+  | "responseTeams"
+  | "waterTrucks"
+  | "medicalKits"
+  | "evacuationVehicles"
+  | "roadClearanceTeams";
+
+const RESOURCE_META: {
+  key: ResourceKey;
+  label: string;
+  short: string;
+  hint: string;
+}[] = [
+  { key: "responseTeams", label: "Response teams", short: "team", hint: "General field response" },
+  { key: "waterTrucks", label: "Water trucks", short: "truck", hint: "Water shortages & sanitation" },
+  { key: "medicalKits", label: "Medical kits", short: "kit", hint: "Health & injury response" },
+  { key: "evacuationVehicles", label: "Evacuation vehicles", short: "vehicle", hint: "Move affected residents" },
+  { key: "roadClearanceTeams", label: "Road clearance crews", short: "crew", hint: "Blocked / landslide access" },
+];
+
+function ResourceOptimizer({ reports }: { reports: PriorityReport[] }) {
+  const [pool, setPool] = useState<Record<ResourceKey, number>>({
+    responseTeams: 4,
+    waterTrucks: 3,
+    medicalKits: 6,
+    evacuationVehicles: 3,
+    roadClearanceTeams: 2,
+  });
+
+  const allocation = useMemo(() => {
+    const top = [...reports]
+      .filter((r) => r.status !== "Resolved")
+      .sort((a, b) => b.riskScore - a.riskScore)
+      .slice(0, 5);
+    const remaining: Record<ResourceKey, number> = { ...pool };
+
+    return top.map((r) => {
+      const issue = r.issue.toLowerCase();
+      const assigned: { key: ResourceKey; count: number }[] = [];
+      const reasons: string[] = [];
+
+      const take = (k: ResourceKey, want: number, why: string) => {
+        const n = Math.min(remaining[k], want);
+        if (n > 0) {
+          remaining[k] -= n;
+          assigned.push({ key: k, count: n });
+          reasons.push(why);
+        }
+      };
+
+      if (r.roadAccess === "Blocked") {
+        take("roadClearanceTeams", 1, "road access is blocked");
+      }
+      if (issue.includes("flood") || issue.includes("water")) {
+        take("waterTrucks", r.severity === "Critical" ? 2 : 1, "water/flood response");
+      }
+      if (issue.includes("health") || issue.includes("dengue") || r.severity === "Critical") {
+        take("medicalKits", r.severity === "Critical" ? 2 : 1, "medical support needed");
+      }
+      if (r.peopleAffected >= 1500) {
+        take(
+          "evacuationVehicles",
+          r.severity === "Critical" ? 2 : 1,
+          "large affected population",
+        );
+      }
+      take(
+        "responseTeams",
+        r.severity === "Critical" ? 2 : 1,
+        "primary field response",
+      );
+
+      const nextAction =
+        r.severity === "Critical"
+          ? `Dispatch now to ${r.area} and confirm ETA with EOC.`
+          : r.severity === "High"
+          ? `Move within 2 hours and stage at nearest depot.`
+          : `Schedule at next cycle and monitor risk score.`;
+
+      return {
+        report: r,
+        assigned,
+        reason:
+          reasons.length > 0
+            ? reasons.join("; ")
+            : "Field response coverage.",
+        nextAction,
+      };
+    });
+  }, [reports, pool]);
+
+  const totals = RESOURCE_META.map((m) => {
+    const used = allocation.reduce(
+      (s, a) => s + (a.assigned.find((x) => x.key === m.key)?.count ?? 0),
+      0,
+    );
+    return { ...m, used, remaining: pool[m.key] - used };
+  });
+
+  return (
+    <section id="optimizer">
+      <SectionTitle
+        eyebrow="Resource Optimizer"
+        title="Allocate available resources across top priorities"
+        subtitle="Enter what you have on hand. The optimizer distributes resources across the highest-risk incidents and explains why."
+      />
+      <div className="mt-6 grid gap-6 lg:grid-cols-5">
+        <Card className="rounded-2xl border-border/70 p-6 lg:col-span-2">
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            <div className="text-sm font-semibold">Available resources</div>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Adjust to match current EOC inventory.
+          </p>
+          <div className="mt-4 space-y-3">
+            {RESOURCE_META.map((m) => (
+              <div key={m.key} className="rounded-xl border border-border/60 bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-medium">{m.label}</div>
+                    <div className="text-[11px] text-muted-foreground">{m.hint}</div>
+                  </div>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={pool[m.key]}
+                    onChange={(e) =>
+                      setPool((p) => ({
+                        ...p,
+                        [m.key]: Math.max(0, Math.min(99, Number(e.target.value) || 0)),
+                      }))
+                    }
+                    className="h-9 w-20 rounded-lg text-right"
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>Used: {totals.find((t) => t.key === m.key)?.used ?? 0}</span>
+                  <span>
+                    Remaining:{" "}
+                    <span className="font-medium text-foreground">
+                      {totals.find((t) => t.key === m.key)?.remaining ?? 0}
+                    </span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="rounded-2xl border-border/70 p-6 lg:col-span-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <div className="text-sm font-semibold">Recommended allocation</div>
+            </div>
+            <div className="flex gap-1">
+              <Badge variant="outline" className="rounded-full text-[10px]">
+                AI-assisted
+              </Badge>
+              <Badge variant="secondary" className="rounded-full text-[10px]">
+                Field-ready
+              </Badge>
+            </div>
+          </div>
+          <div className="mt-4 space-y-3">
+            {allocation.length === 0 && (
+              <p className="text-sm text-muted-foreground">No open incidents to allocate to.</p>
+            )}
+            {allocation.map((a) => (
+              <div
+                key={a.report.id}
+                className="rounded-xl border border-border/60 bg-card p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-semibold">{a.report.area}</div>
+                    <div className="text-xs text-muted-foreground">{a.report.issue}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge
+                      variant="outline"
+                      className={cn("rounded-full text-[10px]", severityStyles[a.report.severity])}
+                    >
+                      {a.report.severity}
+                    </Badge>
+                    <Badge variant="secondary" className="rounded-full text-[10px]">
+                      <Timer className="mr-1 h-3 w-3" />
+                      {a.report.urgency ?? "Within 6h"}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-full text-[10px]">
+                      Risk {a.report.riskScore}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {a.assigned.length === 0 ? (
+                    <span className="text-xs italic text-muted-foreground">
+                      No resources available to assign — restock EOC pool.
+                    </span>
+                  ) : (
+                    a.assigned.map((x) => {
+                      const meta = RESOURCE_META.find((m) => m.key === x.key)!;
+                      return (
+                        <Badge
+                          key={x.key}
+                          className="rounded-full bg-primary/10 text-primary hover:bg-primary/15"
+                          variant="secondary"
+                        >
+                          {x.count}× {meta.short}
+                          {x.count > 1 ? "s" : ""}
+                        </Badge>
+                      );
+                    })
+                  )}
+                </div>
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <span className="font-medium text-foreground">Why: </span>
+                    <span className="text-muted-foreground">{a.reason}</span>
+                  </div>
+                  <div className="rounded-lg bg-primary/5 p-2 text-primary">
+                    <span className="font-medium">Next action: </span>
+                    <span className="text-foreground/80">{a.nextAction}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </section>
+  );
+}

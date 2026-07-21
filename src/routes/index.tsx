@@ -82,7 +82,7 @@ import {
   Radio,
   ShieldCheck,
   Truck,
-  UserCog,
+  
 } from "lucide-react";
 import {
   aiSummary,
